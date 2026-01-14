@@ -17,3 +17,5 @@ Plugins
 *.suo
 *.xcodeproj
 *.xcworkspace
+.claude/
+CLAUDE.md
