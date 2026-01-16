@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "MyBaseCharacter.generated.h"
 
+class UGameplayAbility;
 class UAbilitySystemComponent;
 
 UCLASS(Abstract)//抽象标记,无法被实例化,专门用来被继承
@@ -16,5 +17,9 @@ public:
 	AMyBaseCharacter();
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
+protected:
+	void GiveStartupAbilities();
+private:
+	UPROPERTY(EditDefaultsOnly,Category="GC|Abilities")
+	TArray<TSubclassOf<UGameplayAbility>> StartupGameplayAbilities;
 };

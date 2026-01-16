@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GC_PlayerController.generated.h"
 
+struct FGameplayTag;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
@@ -30,8 +31,14 @@ private:
 	UPROPERTY(EditDefaultsOnly,Category="GC|InputAction")
 	TObjectPtr<UInputAction> LookAction;
 	
-	UPROPERTY(EditDefaultsOnly,Category="GC|Abilities")
+	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitiesAction")
 	TObjectPtr<UInputAction> PrimaryAction;
+	
+	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitiesAction")
+	TObjectPtr<UInputAction> SecondaryAction;
+	
+	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitiesAction")
+	TObjectPtr<UInputAction> TertiaryAction;
 	
 	//Callback function
 	void Jump();
@@ -39,4 +46,9 @@ private:
 	void Look(const FInputActionValue& value);
 	void Move(const FInputActionValue& value);
 	void Primary();
+	void Secondary();
+	void Tertiary();
+	
+	//Activate Ability Function by Tag
+	void ActivateAbility(const FGameplayTag& AbilityTag) const;
 };

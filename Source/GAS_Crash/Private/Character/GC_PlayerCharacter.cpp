@@ -1,5 +1,4 @@
 ﻿#include "GAS_Crash/Public/Character/GC_PlayerCharacter.h"
-
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -44,10 +43,13 @@ void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 	
 	//set InOwnerActor and InAvatarActor by InitAbilityActorInfo function
-	if (!IsValid(GetAbilitySystemComponent())) return;
+	if (!IsValid(GetAbilitySystemComponent()) || !HasAuthority()) return; //HasAuthority() 作用?
 	
 	//为什么这里直接可以getPlayerState,   playerstate是怎么连接到character的??
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
+	
+	//StartupAbilities
+	GiveStartupAbilities();
 }
 
 void AGC_PlayerCharacter::OnRep_PlayerState()
@@ -56,3 +58,5 @@ void AGC_PlayerCharacter::OnRep_PlayerState()
 	if (!IsValid(GetAbilitySystemComponent())) return;
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
 }
+
+
