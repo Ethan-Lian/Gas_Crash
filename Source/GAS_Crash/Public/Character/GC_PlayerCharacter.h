@@ -13,6 +13,13 @@ class GAS_CRASH_API AGC_PlayerCharacter : public AMyBaseCharacter
 
 public:
 	AGC_PlayerCharacter();
+		
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	
+	//?
+	virtual void PossessedBy(AController* NewController) override;
+	//?
+	virtual void OnRep_PlayerState() override;
 	
 private:
 	UPROPERTY(VisibleAnywhere,Category = "Camera")
@@ -20,5 +27,4 @@ private:
 	
 	UPROPERTY(VisibleAnywhere,Category = "Camera")
 	TObjectPtr<USpringArmComponent> SpringArmComponent;	
-	
 };
