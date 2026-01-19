@@ -1,19 +1,16 @@
 ﻿#include "Player/GC_PlayerState.h"
-
-#include "AbilitySystemComponent.h"
+#include "AbilitySystem/GC_AbilitySystemComponent.h"
 
 AGC_PlayerState::AGC_PlayerState()
 {
-	//improve update frequency ?
+	//improve update frequency
 	SetNetUpdateFrequency(100.f);
-	
 	//create AbilitySystemComponent
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(FName("AbilitySystemComponent"));
-	// let this ASC be replicated  ?
+	AbilitySystemComponent = CreateDefaultSubobject<UGC_AbilitySystemComponent>(FName("AbilitySystemComponent"));
+	// make ASC can be replicated,if false, server's change will not transform to client.  
 	AbilitySystemComponent->SetIsReplicated(true);
-	//?
+	// set ReplicationMode
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
-	
 	
 }
 

@@ -8,6 +8,7 @@
 class UGameplayAbility;
 class UAbilitySystemComponent;
 
+//Abstract Mark : cannot be instantiated; intended for inheritance only;
 UCLASS(Abstract)//抽象标记,无法被实例化,专门用来被继承
 class GAS_CRASH_API AMyBaseCharacter : public ACharacter,public IAbilitySystemInterface
 {

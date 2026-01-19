@@ -32,7 +32,7 @@ AGC_PlayerCharacter::AGC_PlayerCharacter()
 
 UAbilitySystemComponent* AGC_PlayerCharacter::GetAbilitySystemComponent() const
 {
-	//get playercharacter own Playerstate,because GC_Playerstate created the ASC,so you need get this first
+	//TryGet PlayerCharacter owned PlayerState,because GC_PlayerState created the ASC,so you need get this first
 	AGC_PlayerState* GCPlayerState = Cast<AGC_PlayerState>(GetPlayerState());
 	if (!IsValid(GCPlayerState)) return nullptr;
 	
@@ -40,21 +40,24 @@ UAbilitySystemComponent* AGC_PlayerCharacter::GetAbilitySystemComponent() const
 }
 
 
-
+// Init in Server
 void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	
 	//set InOwnerActor and InAvatarActor by InitAbilityActorInfo function
-	if (!IsValid(GetAbilitySystemComponent()) || !HasAuthority()) return; //HasAuthority() 作用?
+	//HasAuthority() : check if the code running on the server
+	//GAS authority operations(Giving Ability,Apply Effect) must run on the server 
+	if (!IsValid(GetAbilitySystemComponent()) || !HasAuthority()) return;
 	
-	//为什么这里直接可以getPlayerState,playerstate是怎么连接到character的??
+	//Initialize ASC's owner and avatar
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
 	
-	//StartupAbilities
+	//StartupAbilities,only server can Give Ability.
 	GiveStartupAbilities();
 }
 
+//Init in Client , client need to know who is avatar and owner,so it can show UI and play animaitons.
 void AGC_PlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();

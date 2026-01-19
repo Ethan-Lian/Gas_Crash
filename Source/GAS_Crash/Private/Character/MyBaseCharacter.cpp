@@ -1,14 +1,12 @@
 ﻿#include "GAS_Crash/Public/Character/MyBaseCharacter.h"
-
 #include "AbilitySystemComponent.h"
-
+#include "UGameplay"
 
 AMyBaseCharacter::AMyBaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	//?
-	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }
 
 UAbilitySystemComponent* AMyBaseCharacter::GetAbilitySystemComponent() const

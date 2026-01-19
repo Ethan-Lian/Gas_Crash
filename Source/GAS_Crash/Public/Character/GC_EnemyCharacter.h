@@ -12,6 +12,7 @@ class GAS_CRASH_API AGC_EnemyCharacter : public AMyBaseCharacter
 
 public:
 	AGC_EnemyCharacter();
+	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 protected:

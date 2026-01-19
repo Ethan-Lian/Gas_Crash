@@ -6,7 +6,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 
- UCLASS()
+UCLASS()
 class GAS_CRASH_API AGC_PlayerCharacter : public AMyBaseCharacter
 {
 	GENERATED_BODY()

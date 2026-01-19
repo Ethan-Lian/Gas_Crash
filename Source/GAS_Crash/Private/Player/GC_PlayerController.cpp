@@ -6,7 +6,6 @@
 #include "InputMappingContext.h"
 #include "GameFramework/Character.h"
 #include "GameplayTags/GCTags.h"
-
 void AGC_PlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
