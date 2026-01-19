@@ -12,4 +12,6 @@ class GAS_CRASH_API UGC_GameplayAbility : public UGameplayAbility
 public:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="GC|Debug")
 	bool bDrawDebugs = false;
+	
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 };

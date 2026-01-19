@@ -1,6 +1,5 @@
 ﻿#include "GAS_Crash/Public/Character/MyBaseCharacter.h"
 #include "AbilitySystemComponent.h"
-#include "UGameplay"
 
 AMyBaseCharacter::AMyBaseCharacter()
 {
