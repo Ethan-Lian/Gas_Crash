@@ -15,18 +15,8 @@ void UGC_GameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handl
 	}
 }
 
-UAbilitySystemComponent* UGC_GameplayAbility::GetGCAbilitySystemComponent() const
-{
-	// ActorInfo 在 Ability 激活时由系统注入，保证线程安全和网络同步正确
-	// const_cast 是安全的，因为 ActorInfo 本身就是可变的（ASC 是 TWeakObjectPtr）
-	const FGameplayAbilityActorInfo& Info = GetActorInfo();
-	return Info.AbilitySystemComponent.Get();
-}
-
 AMyBaseCharacter* UGC_GameplayAbility::GetBaseCharacter() const
 {
-	// AvatarActor = 物理表现（如 Character），OwnerActor = 逻辑拥有者（如 PlayerController）
-	// 大多数情况下二者指向同一 Character
 	return Cast<AMyBaseCharacter>(GetAvatarActorFromActorInfo());
 }
 

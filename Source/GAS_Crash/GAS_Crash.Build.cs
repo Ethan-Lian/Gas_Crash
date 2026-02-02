@@ -17,7 +17,8 @@ public class GAS_Crash : ModuleRules
 		"GameplayAbilities",
 		"GameplayTags",
 		"GameplayTasks",
-		"UMG"
+		"UMG",
+		"AIModule"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

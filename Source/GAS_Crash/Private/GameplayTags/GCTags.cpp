@@ -9,6 +9,11 @@ namespace GCTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary,"GCTags.GCAbilities.Tertiary","Tag for the Tertiary Ability");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ActivateOnGiven,"GCTags.GCAbilities.ActivateOnGiven","Tag for Ability that should activate immediately once given");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Death,"GCTags.GCAbilities.Death","Tag for the Death Ability");
+		
+		namespace Enemy
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attack,"GCTags.GCAbilities.Enemy.Attack","Tag for the Enemy Attack Ability");
+		}
 	}
 	
 	namespace GCEvents
