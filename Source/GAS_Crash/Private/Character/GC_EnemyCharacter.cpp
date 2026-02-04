@@ -5,6 +5,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/GC_PlayerCharacter.h"
+#include "AI/GC_AITypeDefs.h"
 
 AGC_EnemyCharacter::AGC_EnemyCharacter()
 {
@@ -88,7 +89,7 @@ void AGC_EnemyCharacter::OnSeePawn(APawn* SeenPawn)
 	if (!Blackboard) return;
 
 	//Set TargetToFollow in BlackBoard
-	Blackboard->SetValueAsObject(FName("TargetToFollow"), Player);
+	Blackboard->SetValueAsObject(BBKeys::TargetActor,Player);
 	
 }
 

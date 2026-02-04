@@ -29,6 +29,9 @@ public:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
 	float MaxAttackDelay = .5f;
+	
+	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
+	float AttackRadius = 150;
 
 	//GET Random Attack Delay [Min, Max]
 	UFUNCTION(BlueprintCallable, Category="GC|AI", meta=(CompactNodeTitle="Random Delay"))
