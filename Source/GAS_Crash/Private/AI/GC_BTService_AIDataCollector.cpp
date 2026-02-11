@@ -15,9 +15,7 @@ UGC_BTService_AIDataCollector::UGC_BTService_AIDataCollector()
 
 	//Set default BBKey name
 	TargetActorKey.SelectedKeyName = BBKeys::TargetActor;
-	DistanceToTargetKey.SelectedKeyName = BBKeys::DistanceToTarget;
 	bCanAttackKey.SelectedKeyName = BBKeys::bCanAttack;
-
 }
 
 
@@ -55,8 +53,7 @@ void UGC_BTService_AIDataCollector::UpdateDistanceData(class UBlackboardComponen
 {
 	//Get Distance from Enemy to Target,Write Distance in BB
 	const float Distance = EnemyCharacter->GetDistanceTo(Target);
-	BB->SetValueAsFloat(DistanceToTargetKey.SelectedKeyName,Distance);
 
 	//Check if Enemy can attack
-	BB->SetValueAsBool(bCanAttackKey.SelectedKeyName,Distance<EnemyCharacter->AttackRadius);
+	BB->SetValueAsBool(bCanAttackKey.SelectedKeyName,Distance < EnemyCharacter->AttackRadius);
 }

@@ -90,8 +90,7 @@ void AMyBaseCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeCh
 
 void AMyBaseCharacter::HandleDeath()
 {
-	bAlive = false;
-	
+	bAlive = false;	
 }
 
 void AMyBaseCharacter::HandleRespawn()

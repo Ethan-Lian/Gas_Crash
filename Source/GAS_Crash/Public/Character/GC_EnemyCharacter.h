@@ -2,11 +2,13 @@
 #include "CoreMinimal.h"
 #include "MyBaseCharacter.h"
 #include "GameplayTagContainer.h"
-#include "GameplayAbilitySpec.h"
 #include "GC_EnemyCharacter.generated.h"
 
 class UAttributeSet;
 class UAbilitySystemComponent;
+
+// Forward declare delegate for enemy death event
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied,AGC_EnemyCharacter*, EnemyCharacter);
 
 UCLASS()
 class GAS_CRASH_API AGC_EnemyCharacter : public AMyBaseCharacter
@@ -22,37 +24,24 @@ public:
 
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
 	float AcceptanceRadius = 500.f;
-
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
-	float MinAttackDelay = .1f;
-
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
-	float MaxAttackDelay = .5f;
 	
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
 	float AttackRadius = 150;
-
-	//GET Random Attack Delay [Min, Max]
-	UFUNCTION(BlueprintCallable, Category="GC|AI", meta=(CompactNodeTitle="Random Delay"))
-	float GetRandomAttackDelay() const;
 	
-	//====================Ability Query API====================
-	
-	//Check Ability is Ready by Tag
-	UFUNCTION(BlueprintPure, Category="GC|Ability")
-	bool IsAbilityReady(const FGameplayTag& AbilityTag) const;
-    
-	//Try to Activate Ability by Tag
-	UFUNCTION(BlueprintCallable, Category="GC|Ability")
-	bool TryActivateAbilityByTag(const FGameplayTag& AbilityTag);
-    
-	//Check any ability is ready
-	UFUNCTION(BlueprintPure, Category="GC|Ability")
-	bool HasAnyAbilityReady(const FGameplayTagContainer& AbilityTags);
+	//====================Death Event====================
+	//Event triggered when enemy died
+	UPROPERTY(BlueprintAssignable, Category="GC|Event")
+	FOnEnemyDied OnEnemyDied;
 
+	
+	//GE_Death
+	UPROPERTY(EditAnywhere,Category="GC|Abilties")
+	TSubclassOf<UGameplayEffect> GE_Death;
 protected:
 	virtual void BeginPlay() override;
+	void Handle_DeathAbiltyAndDeathEffect();
 
+	virtual void HandleDeath() override;
 private:
 	
 	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitySystem")
@@ -61,12 +50,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAttributeSet> AttributesSet;
 	
-	// ================Cache Ability============
-	
-	// AbilityHandle Cache(Tag -> SpecHandle Mapping) used to search quickly 
+	//prevent multiple handling death when receive multiple damage at the same time
 	UPROPERTY()
-	TMap<FGameplayTag,FGameplayAbilitySpecHandle>  AbilityHandleCache;
-	
-	//Build Ability Cache , called after Given ability
-	void BuildAbilityCache();
+	bool bDeathHandled = false;
 };

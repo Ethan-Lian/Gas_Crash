@@ -1,6 +1,12 @@
 ﻿#include "Character/GC_EnemyCharacter.h"
+#include "AIController.h"
+#include "BrainComponent.h"
 #include "AbilitySystem/GC_AbilitySystemComponent.h"
 #include "AbilitySystem/GC_AttributeSet.h"
+#include "AI/GC_AITypeDefs.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameplayTags/GCTags.h"
 
 AGC_EnemyCharacter::AGC_EnemyCharacter()
 {
@@ -33,14 +39,48 @@ void AGC_EnemyCharacter::BeginPlay()
 		//Initialize Attribute by GE
 		InitializeAttribute(); 
 	}
+	
 	//Subscribe the Delegate Listen the Attribute change.
 	UGC_AttributeSet* GC_AS = Cast<UGC_AttributeSet>(GetAttributeSet());
 	if (!GC_AS ) return;
 	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(GC_AS->GetHealthAttribute()).AddUObject(this,&ThisClass::OnHealthChanged);
-		
-	//Build Ability Cache
-	BuildAbilityCache();
 	
+}
+
+void AGC_EnemyCharacter::HandleDeath()
+{
+	Super::HandleDeath();
+	
+	//if HandleDeath already called,just return,avoid multiple handling.
+	if(bDeathHandled) return;
+	bDeathHandled = true;
+	
+	//Stop AI Logic and Movement when enemy died,prevent weird behavior like keep chasing player after death.
+	if(AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		AIController->StopMovement();
+
+		if(UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+		{
+			BrainComponent->StopLogic("Enemy Died");
+		}
+		
+		//Clear all Blackboard keys when Enemy died.
+		if(UBlackboardComponent* BB = AIController->GetBlackboardComponent())
+		{
+			BB->ClearValue(BBKeys::TargetActor);
+			BB->ClearValue(BBKeys::bCanAttack);
+		}
+	}
+	
+	//Stop Character Movement when dead,prevent movement after death.
+	if(UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->DisableMovement();
+	}
+	
+	// Only in Server Handle GA and GE.
+	Handle_DeathAbiltyAndDeathEffect();
 }
 
 UAbilitySystemComponent* AGC_EnemyCharacter::GetAbilitySystemComponent() const
@@ -53,92 +93,24 @@ UAttributeSet* AGC_EnemyCharacter::GetAttributeSet() const
 	return AttributesSet;
 }
 
-float AGC_EnemyCharacter::GetRandomAttackDelay() const
+void AGC_EnemyCharacter::Handle_DeathAbiltyAndDeathEffect()
 {
-	return FMath::FRandRange(MinAttackDelay, MaxAttackDelay);
-}
-
-
-void AGC_EnemyCharacter::BuildAbilityCache()
-{
-	if (!AbilitySystemComponent)
+	if (HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[EnemyCharacter] Cannot build ability cache: ASC is null"));
-		return;
-	}
-	
-	//Clear Old Cache
-	AbilityHandleCache.Empty();
-	
-	//Loop All Given Abilities, build Tag -> Handle mapping.
-	TArray<FGameplayAbilitySpec> AllSpecs = AbilitySystemComponent->GetActivatableAbilities();
-	
-	for (const FGameplayAbilitySpec& Spec : AllSpecs)
-	{
-		if (!Spec.Ability) continue;
-		
-		for (const FGameplayTag& Tag : Spec.Ability->GetAssetTags())
+		if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 		{
-			AbilityHandleCache.Add(Tag,Spec.Handle);
+			if (GE_Death)
+			{
+				//Give DeadTag to mark this character is dead by GE_Death.
+				FGameplayEffectContextHandle EffectContextHandle = ASC->MakeEffectContext();
+				FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GE_Death,1.f,EffectContextHandle);
+				if (SpecHandle.IsValid())
+				{
+					ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+				}
+			}
+			// Activate DeathAbility to play Montage.
+			ASC->TryActivateAbilitiesByTag(FGameplayTagContainer(GCTags::GCAbilities::Death));
 		}
 	}
-	
-	UE_LOG(LogTemp, Log, TEXT("[EnemyCharacter] %s: Built ability cache with %d mappings"), *GetName(), AbilityHandleCache.Num());
 }
-
-
-bool AGC_EnemyCharacter::IsAbilityReady(const FGameplayTag& AbilityTag) const
-{
-	if (!AbilitySystemComponent) return false;
-	//Find Ability Handle from Cache(Tag -> Handle) O(1) complexity
-	const FGameplayAbilitySpecHandle* FoundHandlePtr = AbilityHandleCache.Find(AbilityTag);
-	if (!FoundHandlePtr) return false;
-	
-	//GetAbilitySpec
-	FGameplayAbilitySpec* AbilitySpec = AbilitySystemComponent->FindAbilitySpecFromHandle(*FoundHandlePtr);
-	if (!AbilitySpec) return false;
-	
-	//Get ActorInfo
-	const FGameplayAbilityActorInfo* ActorInfo = AbilitySystemComponent->AbilityActorInfo.Get();
-	if (!ActorInfo) return false;
-	
-	//Core: CanActivateAbility checks:
-	//- Cooldown (based on CD GE)
-	//- Cost (based on Cost GE)
-	//- Tags (based on Ability's Cancel/Block mechanism)
-	return AbilitySpec->Ability->CanActivateAbility(*FoundHandlePtr, ActorInfo);
-}
-
-bool AGC_EnemyCharacter::TryActivateAbilityByTag(const FGameplayTag& AbilityTag)
-{
-	if(!AbilitySystemComponent) return false;
-	//1.Find Ability Handle from Cache(Tag -> Handle) O(1) complexity
-	const FGameplayAbilitySpecHandle* SpecHandle = AbilityHandleCache.Find(AbilityTag);
-	if (!SpecHandle)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[EnemyCharacter] Ability with tag '%s' not found"), *AbilityTag.ToString());
-		return false;
-	}
-	
-	// 2. Deep Pre-check(includes CD,Cost and State Block)
-	if (!IsAbilityReady(AbilityTag)) 
-	{
-		return false; 
-	}
-	
-	//Try to Activate Ability
-	return AbilitySystemComponent->TryActivateAbility(*SpecHandle);
-}
-
-bool AGC_EnemyCharacter::HasAnyAbilityReady(const FGameplayTagContainer& AbilityTags)
-{
-	for (const FGameplayTag& Tag : AbilityTags)
-	{
-		if (IsAbilityReady(Tag))
-		{
-			return true;
-		}
-	}
-	return false;
-}
-

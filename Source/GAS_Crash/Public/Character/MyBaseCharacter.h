@@ -49,7 +49,7 @@ public:
 	UFUNCTION(BlueprintCallable,Category="GC|Death")
 	virtual void HandleRespawn();
 	
-	//定义 初始化ASC委托,用于异步回调 初始化
+	//Define a delegate for ASC initialization, used for asynchronous callback initialization
 	UPROPERTY(BlueprintAssignable)
 	FASCInitalized OnAscInitialized;
 protected:
