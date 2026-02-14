@@ -2,6 +2,10 @@
 
 namespace GCTags
 {
+	namespace SetByCaller
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Projectile,"GCTags.SetByCaller.Projectile","Tag for Set by Caller magnitude for Projectile");
+	}
 	namespace GCAbilities
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Primary,"GCTags.GCAbilities.Primary","Tag for the Primary Ability");
@@ -9,9 +13,9 @@ namespace GCTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary,"GCTags.GCAbilities.Tertiary","Tag for the Tertiary Ability");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ActivateOnGiven,"GCTags.GCAbilities.ActivateOnGiven","Tag for Ability that should activate immediately once given");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Death,"GCTags.GCAbilities.Death","Tag for the Death Ability");
-		
 		namespace Enemy
 		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Respawn,"GCTags.GCAbilities.Enemy.Respawn","Tag for the Respawn Ability");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attack,"GCTags.GCAbilities.Enemy.Attack","Tag for the Enemy Attack Ability");
 		}
 	}

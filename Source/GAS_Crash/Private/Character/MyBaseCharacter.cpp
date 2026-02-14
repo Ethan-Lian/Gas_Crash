@@ -24,6 +24,8 @@ void AMyBaseCharacter::GiveStartupAbilities()
 	if (!IsValid(GetAbilitySystemComponent())) return;
 	for (const auto& Ability : StartupGameplayAbilities)
 	{
+		if (!IsValid(Ability)){continue;}
+		
 		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(Ability);
 		GetAbilitySystemComponent()->GiveAbility(AbilitySpec);
 	}

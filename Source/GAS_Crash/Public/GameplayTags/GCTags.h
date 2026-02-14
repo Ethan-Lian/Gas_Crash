@@ -6,6 +6,11 @@
 // Use NameSpace to avoid Naming Conflict
 namespace GCTags
 {
+	namespace SetByCaller
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Projectile)
+	}
+	
 	//AbilityTag used to activate abilities
 	namespace GCAbilities
 	{
@@ -16,6 +21,7 @@ namespace GCTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Death);
 		namespace Enemy
 		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Respawn);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack);
 		}
 	}
