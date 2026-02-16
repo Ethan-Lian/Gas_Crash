@@ -29,4 +29,9 @@ namespace GCTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact,"GCTags.Events.Enemy.HitReact","Tag for the Enemy HitReact")
 		}
 	}
+
+	namespace State
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dead,"GCTags.State.Dead","Tag for Dead State");
+	}
 }

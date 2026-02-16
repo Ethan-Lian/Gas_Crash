@@ -35,4 +35,10 @@ namespace GCTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitReact);
 		}
 	}
+
+	// State Tag used to mark current state.
+	namespace State
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead);
+	}
 }

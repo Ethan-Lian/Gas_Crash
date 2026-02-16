@@ -20,10 +20,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GC|AI")
 	UBehaviorTree* BehaviorTree;
 
+	UFUNCTION(BlueprintCallable,Category="GC|AI")
+	void RestartAfterRespawn();
 protected:
 	virtual void BeginPlay() override;
 	virtual void OnPossess(APawn* InPawn) override;
-
+	
 private:
 	//Sight Config, used to configure sight sense
 	UPROPERTY(EditAnywhere, Category="GC|AI")

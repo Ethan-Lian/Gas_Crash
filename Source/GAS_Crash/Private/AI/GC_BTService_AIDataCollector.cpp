@@ -3,6 +3,7 @@
 #include "AI/GC_AITypeDefs.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/GC_EnemyCharacter.h"
+#include "Character/GC_PlayerCharacter.h"
 
 UGC_BTService_AIDataCollector::UGC_BTService_AIDataCollector()
 {
@@ -53,7 +54,23 @@ void UGC_BTService_AIDataCollector::UpdateDistanceData(class UBlackboardComponen
 {
 	//Get Distance from Enemy to Target,Write Distance in BB
 	const float Distance = EnemyCharacter->GetDistanceTo(Target);
+	
+	AGC_PlayerCharacter* Player = Cast<AGC_PlayerCharacter>(Target);
+	if (!IsValid(Player))
+	{
+		BB->ClearValue(TargetActorKey.SelectedKeyName);
+		BB->SetValueAsBool(bCanAttackKey.SelectedKeyName, false);
+		return;
+	}
 
-	//Check if Enemy can attack
-	BB->SetValueAsBool(bCanAttackKey.SelectedKeyName,Distance < EnemyCharacter->AttackRadius);
+	if (!Player->IsAlive())
+	{
+		// Dead target should be removed from blackboard, otherwise chase branch may continue.
+		BB->ClearValue(TargetActorKey.SelectedKeyName);
+		BB->SetValueAsBool(bCanAttackKey.SelectedKeyName, false);
+		return;
+	}
+	
+	//Check if Target can attack
+	BB->SetValueAsBool(bCanAttackKey.SelectedKeyName, Distance < EnemyCharacter->AttackRadius);
 }

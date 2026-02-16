@@ -56,14 +56,26 @@ void AGC_EnemyAIController::OnPossess(APawn* InPawn)
 
 void AGC_EnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	//check
+	//if percept actor is self or null return
 	if (!Actor || Actor == GetPawn()) return;
 
 	AGC_PlayerCharacter* PlayerCharacter = Cast<AGC_PlayerCharacter>(Actor);
-	if (!PlayerCharacter || !PlayerCharacter->IsAlive()) return;
+	if (!PlayerCharacter) return;
 
 	UBlackboardComponent* BB = GetBlackboardComponent();
 	if (!BB) return;
+
+	// If target is dead, clear current target immediately to stop chasing.
+	if (!PlayerCharacter->IsAlive())
+	{
+		const UObject* CurrentTarget = BB->GetValueAsObject(BBKeys::TargetActor);
+		if (CurrentTarget == Actor)
+		{
+			BB->ClearValue(BBKeys::TargetActor);
+			BB->SetValueAsBool(BBKeys::bCanAttack, false);
+		}
+		return;
+	}
 
 	if (Stimulus.WasSuccessfullySensed())
 	{
@@ -77,5 +89,29 @@ void AGC_EnemyAIController::HandleTargetPerceptionUpdated(AActor* Actor, FAIStim
 		{
 			BB->ClearValue(BBKeys::TargetActor);
 		}
+	}
+}
+
+void AGC_EnemyAIController::RestartAfterRespawn()
+{
+	if (UBlackboardComponent* BB = GetBlackboardComponent())
+	{
+		BB->ClearValue(BBKeys::TargetActor);
+		BB->SetValueAsBool(BBKeys::bCanAttack,false);
+	}
+
+	// StopLogic() sets bIsRunning=false, bIsPaused=false.
+	// RestartLogic() only works when tree is running or paused — after StopLogic it does nothing.
+	// Must use RunBehaviorTree() to force a fresh start.
+	if (BehaviorTree)
+	{
+		RunBehaviorTree(BehaviorTree);
+	}
+
+	// Force perception refresh so the enemy can re-detect nearby players immediately
+	if (PerceptionComponent)
+	{
+		PerceptionComponent->ForgetAll();
+		PerceptionComponent->RequestStimuliListenerUpdate();
 	}
 }

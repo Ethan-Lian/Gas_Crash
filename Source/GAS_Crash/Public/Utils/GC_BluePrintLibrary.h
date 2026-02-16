@@ -23,7 +23,7 @@ struct FClosestActorWithTagTResult
 	TWeakObjectPtr<AActor> ClosestActor;
 	
 	UPROPERTY(BlueprintReadWrite)
-	float ClosestDistance;
+	float ClosestDistance = TNumericLimits<float>::Max();
 };
 
 UCLASS()
