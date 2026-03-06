@@ -16,6 +16,9 @@ class GAS_CRASH_API AGC_PlayerController : public APlayerController
 protected:
 	virtual void SetupInputComponent() override;
 	
+	// block player input when player died.
+	bool IsDied();
+
 private:
 	//InputMappingContext
 	UPROPERTY(EditDefaultsOnly,Category="GC|InputMappingContext")

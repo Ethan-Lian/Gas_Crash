@@ -5,6 +5,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameplayTags/GCTags.h"
+#include "GameMode/GC_GameMode.h"
 #include "Player/GC_PlayerState.h"
 
 AGC_PlayerCharacter::AGC_PlayerCharacter()
@@ -65,11 +67,14 @@ void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 	
 	//Initialize Attribute by GE
 	InitializeAttribute();
-	
+
 	//Subscribe the Delegate Listen the Attribute change.
 	UGC_AttributeSet* GCAS = Cast<UGC_AttributeSet>(GetAttributeSet());
 	if (!GCAS) return;
 	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(GCAS->GetHealthAttribute()).AddUObject(this,&ThisClass::OnHealthChanged);
+
+	//Listen Dead Tag change by delegate (for UI updates, animation state, etc.)
+	GetAbilitySystemComponent()->RegisterGameplayTagEvent(GCTags::GCEvents::player::Dead,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&AGC_PlayerCharacter::OnDeadTagChanged);
 }
 
 //Init in Client , client need to know who is avatar and owner,so it can show UI and play Animations.
@@ -82,11 +87,14 @@ void AGC_PlayerCharacter::OnRep_PlayerState()
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
 	
 	OnAscInitialized.Broadcast(GetAbilitySystemComponent(),GetAttributeSet());
-	
+
 	//Subscribe the Delegate Listen the Attribute change.
 	UGC_AttributeSet* GCAS = Cast<UGC_AttributeSet>(GetAttributeSet());
 	if (!GCAS) return;
 	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(GCAS->GetHealthAttribute()).AddUObject(this,&ThisClass::OnHealthChanged);
+
+	//Listen Dead Tag change by delegate (for UI updates, animation state, etc.)
+	GetAbilitySystemComponent()->RegisterGameplayTagEvent(GCTags::GCEvents::player::Dead,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&AGC_PlayerCharacter::OnDeadTagChanged);
 }
 
 UAttributeSet* AGC_PlayerCharacter::GetAttributeSet() const
@@ -97,4 +105,78 @@ UAttributeSet* AGC_PlayerCharacter::GetAttributeSet() const
 	return GC_PlayerState->GetAttributeSet();
 }
 
+void AGC_PlayerCharacter::HandleDeath()
+{
+	Super::HandleDeath();
+	
+	if (!bDeathHandled) return;
+	
+	// Apply DeathEffect and Activate Death Ability
+	ApplyDeathEffectAndActivateDeathEffect();
+
+	// Notify GameMode for respawn
+	if (HasAuthority())
+	{
+		if (AGC_GameMode* GCGameMode = GetWorld()->GetAuthGameMode<AGC_GameMode>())
+		{
+			GCGameMode->RequestRespawnForPlayer(this);
+		}
+	}
+}
+
+void AGC_PlayerCharacter::HandleRespawn()
+{
+	Super::HandleRespawn();
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+
+	//remove DeathEffect (remove dead tag)
+	if (ActiveDeathEffectHandle.IsValid())
+	{
+		ASC->RemoveActiveGameplayEffect(ActiveDeathEffectHandle);
+		ActiveDeathEffectHandle.Invalidate();
+	}
+
+	//Re-enable movement and collision
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->SetMovementMode(MOVE_Walking);
+	}
+
+	//Set actor collision
+	SetActorEnableCollision(true);
+}
+
+void AGC_PlayerCharacter::ApplyDeathEffectAndActivateDeathEffect()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+	
+	//Activate Death Ability (montage, camera)
+	ASC->TryActivateAbilitiesByTag(FGameplayTagContainer(GCTags::GCAbilities::player::Death));
+	
+	//Apply DeathEffect (adds Dead tag, disables input)
+	if (DeathEffect)
+	{
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddSourceObject(this);
+		
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(DeathEffect,1.f,ContextHandle);
+		
+		if (SpecHandle.IsValid())
+		{
+			ActiveDeathEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
+	}
+}
+
+void AGC_PlayerCharacter::OnDeadTagChanged(const FGameplayTag CallbackTag, int32 NewCount)
+{
+	const bool bIsDead = NewCount > 0;
+
+	// bAlive is driven by replicated Dead tag
+	// This ensures client and server stay in sync
+	SetAlive(!bIsDead);
+}
 

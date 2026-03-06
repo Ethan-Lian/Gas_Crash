@@ -60,6 +60,10 @@ protected:
 	//Apply ResetAttributeEffect to CharacterAttribute
 	UFUNCTION(BlueprintCallable,Category="GC|Attributes")
 	void ResetAttributes();
+
+	//Death state protect, only handle once per death, reset in respawn
+	UPROPERTY(EditDefaultsOnly,Category="GC|Death")
+	bool bDeathHandled = false;
 private:
 	UPROPERTY(EditDefaultsOnly,Category="GC|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> StartupGameplayAbilities;

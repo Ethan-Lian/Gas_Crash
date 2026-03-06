@@ -84,7 +84,7 @@ void AMyBaseCharacter::ResetAttributes()
 
 void AMyBaseCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData)
 {
-	if (AttributeChangeData.NewValue <= 0.f)
+	if (AttributeChangeData.NewValue <= 0.f && bAlive)
 	{
 		HandleDeath();
 	}
@@ -92,11 +92,24 @@ void AMyBaseCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeCh
 
 void AMyBaseCharacter::HandleDeath()
 {
+	//Only execute death logic on the server, and only execute once per death.
+	if(!HasAuthority()) return;
+	if(bDeathHandled) return; 
+
+	bDeathHandled = true;
 	bAlive = false;	
 }
 
 void AMyBaseCharacter::HandleRespawn()
 {
+	//Only execute respawn logic on the server.
+	if (!HasAuthority()) return;
+
+	//Reset death state
+	bDeathHandled = false;
 	bAlive = true;
+	
+	//reset attributes
+	ResetAttributes();
 }
 

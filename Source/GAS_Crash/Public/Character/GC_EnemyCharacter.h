@@ -68,10 +68,6 @@ private:
 	UPROPERTY()
 	TObjectPtr<UAttributeSet> AttributesSet;
 	
-	//prevent multiple handling death when receive multiple damage at the same time
-	UPROPERTY()
-	bool bDeathHandled = false;
-	
 	//Cache Respawn Transform, set by spawner when spawn enemy, used to reset enemy location when respawn.
 	FTransform RespawnTransform;
 	

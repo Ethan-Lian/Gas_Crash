@@ -10,24 +10,24 @@ void AGC_PlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 	
-	//通过本地玩家类的get方法来获取强化输入本地玩家子系统,但是这是干什么的?
+	//Enhanced Input Subsystem is used to manage input mappings and contexts for the local player
 	UEnhancedInputLocalPlayerSubsystem* InputLocalPlayerSubsystem = 
 		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	
 	if (!IsValid(InputLocalPlayerSubsystem)) return;
 	
-	//获取输入映射文本,来添加到本地玩家子系统
+	//Get Input Mapping Contexts and add to subsystem
 	for (UInputMappingContext* Context : InputMappingContexts)
 	{
 		InputLocalPlayerSubsystem->AddMappingContext(Context,0);
 	}
 	
-	//获取EnhanceInputComponent
-	UEnhancedInputComponent* EnhancedInputComponent =
-		Cast<UEnhancedInputComponent>(InputComponent);
+	//Get EnhanceInputComponent
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
 	
 	if (!IsValid(EnhancedInputComponent)) return;
-	//给增强输入组件绑定输入动作
+
+	//Binding input actions to ability activation
 	EnhancedInputComponent->BindAction(JumpAction,ETriggerEvent::Started,this,&ThisClass::Jump);//this和&ThisClass::jump是啥意思
 	EnhancedInputComponent->BindAction(JumpAction,ETriggerEvent::Completed,this,&AGC_PlayerController::JumpStop);
 	EnhancedInputComponent->BindAction(MoveAction,ETriggerEvent::Triggered,this,&AGC_PlayerController::Move);
@@ -40,15 +40,22 @@ void AGC_PlayerController::SetupInputComponent()
 /*
  * Input callback function
  */
-void AGC_PlayerController::Jump() 
+void AGC_PlayerController::Jump()
 {
 	if (!IsValid(GetCharacter())) return;
+
+	//Block jump when dead
+	if (IsDied()) return;
+
 	GetCharacter()->Jump();
 }
 
 void AGC_PlayerController::JumpStop()
 {
 	if (!IsValid(GetCharacter())) return;
+	
+	if (IsDied()) return;
+	
 	GetCharacter()->StopJumping();
 }
 
@@ -57,24 +64,29 @@ void AGC_PlayerController::Move(const FInputActionValue& value)
 	//ue5编辑器里面InputAction设置的y是向前
 	//2维系统里面x是左右,y是上下,3维系统里x是向前,y是右
 	if (!IsValid(GetPawn())) return;
-	
+
+	// Block input when player is dead
+	if (IsDied()) return;
+
 	//设置的InputAction里面需要的是一个2维向量,y是向前,x是左右
 	const FVector2D MovementVector = value.Get<FVector2D>();
-	
+
 	//find which way is forward and right
-	const FRotator YawRotation(0.f,GetControlRotation().Yaw,0.f);//这里为什么不是value.Yaw,不是通过输入的3维向量来获取yaw吗
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);//这里为什么不是EAxis::Y,y不是向前的吗
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);//为什么获取单位x,y方向向量,获取方向向量是怎么添加到角色移动能力上的
-	
+	const FRotator YawRotation(0.f,GetControlRotation().Yaw,0.f);
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
 	//Add MovementInput
 	GetPawn()->AddMovementInput(ForwardDirection,MovementVector.Y);
 	GetPawn()->AddMovementInput(RightDirection,MovementVector.X);
-	
+
 }
 
 void AGC_PlayerController::Look(const FInputActionValue& value)
 {
 	if (!IsValid(GetPawn())) return;
+
+	if (IsDied()) return;
 	
 	const FVector2D MovementVector = value.Get<FVector2D>();
 	AddYawInput(MovementVector.X);
@@ -83,15 +95,19 @@ void AGC_PlayerController::Look(const FInputActionValue& value)
 
 void AGC_PlayerController::Primary()
 {
+	if (IsDied()) return;
 	ActivateAbility(GCTags::GCAbilities::player::Primary);
 }
 
-void AGC_PlayerController::Secondary(){
+void AGC_PlayerController::Secondary()
+{
+	if (IsDied()) return;
 	ActivateAbility(GCTags::GCAbilities::player::Secondary);
 }
 
 void AGC_PlayerController::Tertiary()
 {
+	if (IsDied()) return;
 	ActivateAbility(GCTags::GCAbilities::player::Tertiary);
 }
 
@@ -101,6 +117,20 @@ void AGC_PlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const
 	// Use UAbilitySystemBlueprintLibrary to get ASC
 	UAbilitySystemComponent* AbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
 	if (!IsValid(AbilitySystemComponent)) return;
-	//why TryActivate need Container?
+
+	// Block ability activation when dead
+	// This prevents attacking/using abilities during death state
+	if (AbilitySystemComponent->HasMatchingGameplayTag(GCTags::GCEvents::player::Dead)) return;
+
+	//Activate Ability by ASC.
 	AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTag.GetSingleTagContainer());
+}
+
+bool AGC_PlayerController::IsDied()
+{
+	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
+	
+	if (ASC && ASC->HasMatchingGameplayTag(GCTags::GCEvents::player::Dead)) return true;
+	
+	return false;
 }

@@ -16,6 +16,7 @@ namespace GCTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary, "GCTags.GCAbilities.player.Secondary", "Tag for player secondary ability.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary, "GCTags.GCAbilities.player.Tertiary", "Tag for player tertiary ability.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Death, "GCTags.GCAbilities.player.Death", "Tag for player death ability.");
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Respawn, "GCTags.GCAbilities.player.Respawn", "Tag for player respawn ability.");
 		}
 
 		namespace Enemy

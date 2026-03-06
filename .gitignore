@@ -24,3 +24,4 @@ AGENTS.md
 .codex/
 .mcp.json
 .vsconfig
+Config/DefaultUEAgent.ini

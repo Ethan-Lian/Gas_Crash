@@ -52,14 +52,9 @@ void AGC_EnemyCharacter::BeginPlay()
 
 void AGC_EnemyCharacter::HandleDeath()
 {
+	// Gate before Super so we can reuse base-state without relying on duplicated member.
+	if (!HasAuthority() || bDeathHandled) return;
 	Super::HandleDeath();
-	
-	// Server only
-	if (!HasAuthority()) return;
-	
-	//if HandleDeath already called,just return,avoid multiple handling.
-	if(bDeathHandled) return;
-	bDeathHandled = true;
 	
 	//When Enemy dead Broadcast to spawner.
 	OnEnemyDied.Broadcast(this);
@@ -81,22 +76,24 @@ UAttributeSet* AGC_EnemyCharacter::GetAttributeSet() const
 void AGC_EnemyCharacter::Handle_DeathAbilityAndDeathEffect()
 {
 	if (!HasAuthority()) return;
-	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;	
+
+	//Activate DeathAbility to play Montage.
+	ASC->TryActivateAbilitiesByTag(FGameplayTagContainer(GCTags::GCAbilities::Enemy::Death));
+
+	//Apply DeathEffect (adds Dead tag, disables input)	
+	if (GE_Death)
 	{
-		if (GE_Death)
+		//Give Dead Tag to mark this character is dead by GE_Death.
+		FGameplayEffectContextHandle EffectContextHandle = ASC->MakeEffectContext();
+		FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GE_Death,1.f,EffectContextHandle);
+		if (SpecHandle.IsValid())
 		{
-			//Give Dead Tag to mark this character is dead by GE_Death.
-			FGameplayEffectContextHandle EffectContextHandle = ASC->MakeEffectContext();
-			FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GE_Death,1.f,EffectContextHandle);
-			if (SpecHandle.IsValid())
-			{
-				// Cache activated DeathEffectHandle it will be used to remove in HandleRespawn.
-				ActivateDeathEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-			}
-		}
-		
-		// Activate DeathAbility to play Montage.
-		ASC->TryActivateAbilitiesByTag(FGameplayTagContainer(GCTags::GCAbilities::Enemy::Death));
+			// Cache activated DeathEffectHandle it will be used to remove in HandleRespawn.
+			ActivateDeathEffectHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}	
 	}
 }
 
@@ -125,7 +122,6 @@ void AGC_EnemyCharacter::HandleRespawn()
 {
 	if (!HasAuthority()) return;//server only
 	Super::HandleRespawn(); //bAlive = true
-	ResetAttributes();// reset attributes
 	
 	 //Set the Enemy to spawn location
 	SetActorTransform(RespawnTransform);
