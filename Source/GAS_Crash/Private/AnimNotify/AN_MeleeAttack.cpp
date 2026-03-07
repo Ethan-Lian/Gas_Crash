@@ -175,11 +175,12 @@ bool UAN_MeleeAttack::IsEligibleDamageTarget(AActor* OwnerActor, AActor* Candida
 	// MeleeEnemy can only attack player and must be alive.
 	const AGC_PlayerCharacter* PlayerCharacter = Cast<AGC_PlayerCharacter>(CandidateActor);
 	if (!IsValid(PlayerCharacter) || !PlayerCharacter->IsAlive()) return false;
-	
-	//MeleeEnemy only can attack PlayerCharacter with Player Tag.
-	if (!PlayerCharacter->ActorHasTag(CrashTags::Player)) return false;
-	
-	return IsValid(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CandidateActor));
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(CandidateActor);
+	if (!IsValid(TargetASC)) return false;
+
+	//MeleeEnemy only can attack targets that the GAS identity system marks as players.
+	return TargetASC->HasMatchingGameplayTag(GCTags::GCIdentity::Player);
 }
 
 void UAN_MeleeAttack::ApplyDamageToTarget(AActor* SourceActor, UAbilitySystemComponent* SourceASC,

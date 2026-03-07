@@ -4,6 +4,7 @@
 #include "GameplayTags/GCTags.h"
 #include "Net/UnrealNetwork.h"
 
+
 void UGC_AttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue) const
 {
 	//时机: 仅在客户端触发,当服务器复制到客户端的值,也就是下面参数Health,与本地预测的值OldValue不一样时触发
@@ -44,27 +45,58 @@ void UGC_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 {
 	Super::PostGameplayEffectExecute(Data);
 	
-	//检查gameplayeffect影响的data是不是health.并且health<=0
-	if (Data.EvaluatedData.Attribute == GetHealthAttribute() && GetHealth()<=0)
+	//only care health attribute change
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
-		FGameplayEventData Payload;
-		Payload.Instigator = Data.Target.GetAvatarActor();
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Data.EffectSpec.GetEffectContext().GetInstigator(),GCTags::GCEvents::KillScored,Payload);
+		//HealthDelta is negative when damage health, positive when add health or initialize health
+		const float HealthDelta  =Data.EvaluatedData.Magnitude;
+		
+		AActor* TargetActor = Data.Target.GetAvatarActor();
+		
+		AActor* InstigatorActor = Cast<AActor>(Data.EffectSpec.GetEffectContext().GetInstigator());
+		
+		//only care damage, and make sure both TargetActor and InstigatorActor are valid
+		if (HealthDelta<0.f && IsValid(TargetActor) && IsValid(InstigatorActor))
+		{
+			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
+
+			//only care player and make sure health is still above 0,only trigger hit react when player is still alive.
+			if (IsValid(TargetASC) && TargetASC->HasMatchingGameplayTag(GCTags::GCIdentity::Player) && GetHealth()>0.f)
+			{
+				//Send GameplayEvent to trigger hit react and pass HitReactPayload to the receiver,
+				//the receiver can use the payload to do some logic, for example, play different hit react montage based on the instigator or the damage causer.
+				FGameplayEventData HitReactPayload;
+				
+				HitReactPayload.EventTag = GCTags::GCEvents::player::HitReact;
+				
+				HitReactPayload.Instigator = InstigatorActor;
+				
+				HitReactPayload.Target = TargetActor;
+				
+				HitReactPayload.ContextHandle = Data.EffectSpec.GetEffectContext();
+				
+				HitReactPayload.OptionalObject = Data.EffectSpec.Def;
+				
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor,GCTags::GCEvents::player::HitReact,HitReactPayload);
+			}
+		}
 	}
 	
-	
-	if (!bAttributeInitialized) //判断是否是第一次初始化
+	// When the GE initializes the attribute for the first time, notify the UI or WidgetComponent to start binding real values.
+	if (!bAttributeInitialized)
 	{
-		bAttributeInitialized = true; //服务器标记初始化成功
-		OnAttributeSetInitialized.Broadcast();//通知本地订阅者
+		bAttributeInitialized = true;
+		OnAttributeSetInitialized.Broadcast();
 	}
 }
 
 
 void UGC_AttributeSet::OnRep_AttributeInitialized()
 {
-	if (bAttributeInitialized) //判断服务器是否初始化成功
+	// When the server initializes the attribute for the first time, 
+	// notify the client subscribers to start binding real values.
+	if (bAttributeInitialized)
 	{
-		OnAttributeSetInitialized.Broadcast();//通知客户端订阅者
+		OnAttributeSetInitialized.Broadcast();
 	}
 }

@@ -46,4 +46,10 @@ namespace GCTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dead, "GCTags.GCEvents.Enemy.Dead", "Tag for enemy dead state/event.");
 		}
 	}
+
+	namespace GCIdentity
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Player, "GCTags.GCIdentity.Player", "Tag to identify player characters.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Enemy, "GCTags.GCIdentity.Enemy", "Tag to identify enemy characters.");
+	}
 }

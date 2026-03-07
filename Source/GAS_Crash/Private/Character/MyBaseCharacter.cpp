@@ -1,12 +1,6 @@
 ﻿#include "GAS_Crash/Public/Character/MyBaseCharacter.h"
 #include "AbilitySystemComponent.h"
 
-namespace CrashTags
-{
-	const FName Player = FName("Player");
-}
-
-
 AMyBaseCharacter::AMyBaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;

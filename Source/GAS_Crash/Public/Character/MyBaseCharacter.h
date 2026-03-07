@@ -1,16 +1,8 @@
 ﻿#pragma once
-
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "MyBaseCharacter.generated.h"
-
-//Define Tags
-namespace CrashTags
-{
-	extern GAS_CRASH_API const FName Player;
-}
-
 
 struct FOnAttributeChangeData;
 class UAttributeSet;

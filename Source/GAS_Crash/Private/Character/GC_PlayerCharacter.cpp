@@ -30,9 +30,6 @@ AGC_PlayerCharacter::AGC_PlayerCharacter()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(FName("Camera"));
 	CameraComponent->SetupAttachment(SpringArmComponent,USpringArmComponent::SocketName);
 	CameraComponent->bUsePawnControlRotation = false;
-	
-	//Add Tag
-	Tags.Add(CrashTags::Player);
 }
 
 
@@ -58,6 +55,13 @@ void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 	
 	//Initialize ASC's owner and avatar
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
+
+	//Identity belongs to the ASC layer so other GAS systems can query it consistently.
+	//Set a loose tag count on the ASC to identify this as a player character, this is replicated to clients.
+	GetAbilitySystemComponent()->SetLooseGameplayTagCount(
+		GCTags::GCIdentity::Player,
+		1,
+		EGameplayTagReplicationState::TagAndCountToAll);
 	
 	//Delegate ASC and AS
 	OnAscInitialized.Broadcast(GetAbilitySystemComponent(),GetAttributeSet());
