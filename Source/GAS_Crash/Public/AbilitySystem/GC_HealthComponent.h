@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "GameplayTagContainer.h"
+#include "DamageType/GC_DamageFeedbackTypes.h"
 #include "GC_HealthComponent.generated.h"
 
 struct FOnAttributeChangeData;
@@ -30,4 +32,13 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<UGC_AttributeSet> AttributeSet;
+
+	//Find the right GameplayCue tag according to the damage type.
+	FGameplayTag ResolveCueTagFromDamageType(const FGameplayTag& DamageTypeTag) const;
+	
+	//Send HitReact GameplayEvent when player get damage, this is used to trigger hit react animation only for player character.
+	void SendHitReactEvent(const FGC_DamageFeedbackData& DamageData) const;
+
+	//Execute GameplayCue when damage confirmed,only for player character,and the damage is not fatal, this is used to trigger hit react animation and spawn hit react particle.
+	void HandleDamageConfirmed(const FGC_DamageFeedbackData& DamageData);
 };

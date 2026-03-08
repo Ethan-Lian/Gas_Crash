@@ -34,7 +34,8 @@ void AGC_Projectile::NotifyActorBeginOverlap(AActor* OtherActor)
 
 	// Make the damage effect spec.
 	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
-	ContextHandle.AddInstigator(SourceActor,SourceActor);
+	ContextHandle.AddInstigator(SourceActor,this);
+	ContextHandle.AddSourceObject(this);
 
 	FGameplayEffectSpecHandle DamageEffectSpecHandle = SourceASC->MakeOutgoingSpec(DamageEffect,1.0,ContextHandle);
 	if(!DamageEffectSpecHandle.IsValid()) return;

@@ -3,6 +3,7 @@
 #include "GameplayEffectExtension.h"
 #include "GameplayTags/GCTags.h"
 #include "Net/UnrealNetwork.h"
+#include "Math/UnrealMathUtility.h"
 
 void UGC_AttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue) const
 {
@@ -51,62 +52,31 @@ void UGC_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 		const float HealthDelta  =Data.EvaluatedData.Magnitude;
 		
 		AActor* TargetActor = Data.Target.GetAvatarActor();
-		
 		AActor* InstigatorActor = Cast<AActor>(Data.EffectSpec.GetEffectContext().GetInstigator());
 		
-		//only care damage, and make sure both TargetActor and InstigatorActor are valid
-		if (HealthDelta<0.f && IsValid(TargetActor) && IsValid(InstigatorActor))
+		//Confirm the damage type
+		if (HealthDelta < 0.f && IsValid(TargetActor) && IsValid(InstigatorActor))
 		{
-			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-
-			//only care player and make sure health is still above 0,only trigger hit react when player is still alive.
-			if (IsValid(TargetASC) && TargetASC->HasMatchingGameplayTag(GCTags::GCIdentity::Player) && GetHealth()>0.f)
+			FGC_DamageFeedbackData Payload;
+			Payload.DamageMagnitude = FMath::Abs(HealthDelta);
+			Payload.bIsFatal = GetHealth() <= 0.f;
+			Payload.Instigator = InstigatorActor;
+			Payload.EffectCauser = Data.EffectSpec.GetEffectContext().GetEffectCauser();
+			Payload.EffectContext = Data.EffectSpec.GetEffectContext();
+			
+			const float MeleeSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Melee);
+			const float ProjectileSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Projectile);
+			
+			if (!FMath::IsNearlyZero(MeleeSetByCaller))
 			{
-				
-				//1.
-				const float MeleeSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Melee,false,0);
-				
-				if (!FMath::IsNearlyZero(MeleeSetByCaller))
-				{
-					FGameplayCueParameters GameplayCueParameters(Data.EffectSpec.GetEffectContext());
-					GameplayCueParameters.RawMagnitude = FMath::Abs(HealthDelta);
-					GameplayCueParameters.Instigator = InstigatorActor;
-					
-					GameplayCueParameters.Location = TargetActor->GetActorLocation();
-					GameplayCueParameters.Normal = TargetActor->GetActorForwardVector();
-					
-					if (const FHitResult* HitResult = Data.EffectSpec.GetEffectContext().GetHitResult())
-					{
-						GameplayCueParameters.Location = HitResult->ImpactPoint.IsNearlyZero()
-						? HitResult->Location
-						: HitResult->ImpactPoint;
-						
-						GameplayCueParameters.Normal = HitResult->ImpactNormal.IsNearlyZero()
-						? HitResult->Normal
-						: HitResult->ImpactNormal;
-						
-						GameplayCueParameters.PhysicalMaterial = HitResult->PhysMaterial.Get();
-					}
-					
-					TargetASC->ExecuteGameplayCue(GCTags::GameplayCue::Character_DamageTaken_Melee,GameplayCueParameters);
-				}
-				
-				//2.Send GameplayEvent to trigger hit react and pass HitReactPayload to the receiver,
-				//the receiver can use the payload to do some logic, for example, play different hit react montage based on the instigator or the damage causer.
-				FGameplayEventData HitReactPayload;
-				
-				HitReactPayload.EventTag = GCTags::GCEvents::player::HitReact;
-				
-				HitReactPayload.Instigator = InstigatorActor;
-				
-				HitReactPayload.Target = TargetActor;
-				
-				HitReactPayload.ContextHandle = Data.EffectSpec.GetEffectContext();
-				
-				HitReactPayload.OptionalObject = Data.EffectSpec.Def;
-				
-				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor,GCTags::GCEvents::player::HitReact,HitReactPayload);
+				Payload.DamageTypeTag = GCTags::SetByCaller::Melee;
 			}
+			else if (!FMath::IsNearlyZero(ProjectileSetByCaller))
+			{
+				Payload.DamageTypeTag = GCTags::SetByCaller::Projectile;
+			}
+			
+			OnDamageConfirmed.Broadcast(Payload);
 		}
 	}
 	
