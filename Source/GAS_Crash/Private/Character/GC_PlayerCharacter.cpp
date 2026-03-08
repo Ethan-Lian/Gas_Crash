@@ -55,7 +55,10 @@ void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 	
 	//Initialize ASC's owner and avatar
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
-
+	
+	//Initialize HealthComponent to listen health change.
+	InitializeHealthComponent();
+	
 	//Identity belongs to the ASC layer so other GAS systems can query it consistently.
 	//Set a loose tag count on the ASC to identify this as a player character, this is replicated to clients.
 	GetAbilitySystemComponent()->SetLooseGameplayTagCount(
@@ -71,12 +74,7 @@ void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 	
 	//Initialize Attribute by GE
 	InitializeAttribute();
-
-	//Subscribe the Delegate Listen the Attribute change.
-	UGC_AttributeSet* GCAS = Cast<UGC_AttributeSet>(GetAttributeSet());
-	if (!GCAS) return;
-	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(GCAS->GetHealthAttribute()).AddUObject(this,&ThisClass::OnHealthChanged);
-
+	
 	//Listen Dead Tag change by delegate (for UI updates, animation state, etc.)
 	GetAbilitySystemComponent()->RegisterGameplayTagEvent(GCTags::GCEvents::player::Dead,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&AGC_PlayerCharacter::OnDeadTagChanged);
 }
@@ -90,13 +88,10 @@ void AGC_PlayerCharacter::OnRep_PlayerState()
 	
 	GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(),this);
 	
+	InitializeHealthComponent();
+	
 	OnAscInitialized.Broadcast(GetAbilitySystemComponent(),GetAttributeSet());
-
-	//Subscribe the Delegate Listen the Attribute change.
-	UGC_AttributeSet* GCAS = Cast<UGC_AttributeSet>(GetAttributeSet());
-	if (!GCAS) return;
-	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(GCAS->GetHealthAttribute()).AddUObject(this,&ThisClass::OnHealthChanged);
-
+	
 	//Listen Dead Tag change by delegate (for UI updates, animation state, etc.)
 	GetAbilitySystemComponent()->RegisterGameplayTagEvent(GCTags::GCEvents::player::Dead,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&AGC_PlayerCharacter::OnDeadTagChanged);
 }

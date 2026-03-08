@@ -9,6 +9,7 @@ class UAttributeSet;
 class UGameplayEffect;
 class UGameplayAbility;
 class UAbilitySystemComponent;
+class UGC_HealthComponent;
 
 // Delegate
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FASCInitalized,UAbilitySystemComponent*,ASC,UAttributeSet*,AS);
@@ -22,6 +23,8 @@ class GAS_CRASH_API AMyBaseCharacter : public ACharacter,public IAbilitySystemIn
 public:
 	AMyBaseCharacter();
 	
+	UGC_HealthComponent* GetHealthComponent() const {return HealthComponent;}
+	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
 	virtual UAttributeSet* GetAttributeSet() const{ return nullptr;}
@@ -29,9 +32,6 @@ public:
 	bool IsAlive() const {return bAlive;}
 	
 	void SetAlive(bool AliveStatus) {bAlive = AliveStatus;}
-	
-	//Listen Health Changed
-	void OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData);
 	
 	//Handle Death
 	virtual void HandleDeath();
@@ -56,6 +56,8 @@ protected:
 	//Death state protect, only handle once per death, reset in respawn
 	UPROPERTY(EditDefaultsOnly,Category="GC|Death")
 	bool bDeathHandled = false;
+	
+	void InitializeHealthComponent() const;
 private:
 	UPROPERTY(EditDefaultsOnly,Category="GC|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> StartupGameplayAbilities;
@@ -71,4 +73,7 @@ private:
 	
 	UPROPERTY(BlueprintReadOnly,meta=(AllowPrivateAccess = "true"))
 	bool bAlive = true;
+	
+	UPROPERTY(EditDefaultsOnly,Category="GC|Component")
+	UGC_HealthComponent* HealthComponent;
 };

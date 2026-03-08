@@ -1,11 +1,15 @@
 ﻿#include "GAS_Crash/Public/Character/MyBaseCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/GC_AttributeSet.h"
+#include "AbilitySystem/GC_HealthComponent.h"
 
 AMyBaseCharacter::AMyBaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	
+	HealthComponent = CreateDefaultSubobject<UGC_HealthComponent>(FName("HealthComponent"));
 }
 
 UAbilitySystemComponent* AMyBaseCharacter::GetAbilitySystemComponent() const
@@ -76,12 +80,14 @@ void AMyBaseCharacter::ResetAttributes()
 	GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
 }
 
-void AMyBaseCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData)
+void AMyBaseCharacter::InitializeHealthComponent() const
 {
-	if (AttributeChangeData.NewValue <= 0.f && bAlive)
-	{
-		HandleDeath();
-	}
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	UGC_AttributeSet* GCAttributeSet = Cast<UGC_AttributeSet>(GetAttributeSet());
+	
+	if (!HealthComponent || !ASC || !GCAttributeSet) return;
+	
+	HealthComponent->InitializeWithAbilitySystem(ASC,GCAttributeSet);
 }
 
 void AMyBaseCharacter::HandleDeath()

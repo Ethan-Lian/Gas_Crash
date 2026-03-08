@@ -30,6 +30,10 @@ void AGC_EnemyCharacter::BeginPlay()
 	if (!IsValid(GetAbilitySystemComponent())) return;
 	//Initialize ASC,OwnerActor(数据拥有者)->Enemy,AvatarActor(表现持有者)->Enemy
 	GetAbilitySystemComponent()->InitAbilityActorInfo(this,this);
+	
+	//Initialize HealthComponent to listen health change.
+	InitializeHealthComponent();
+	
 	OnAscInitialized.Broadcast(GetAbilitySystemComponent(),GetAttributeSet());
 	
 	//only in server,giving abilities,initialized Attribute,
@@ -40,11 +44,6 @@ void AGC_EnemyCharacter::BeginPlay()
 		//Initialize Attribute by GE
 		InitializeAttribute(); 
 	}
-	
-	//Subscribe the Delegate Listen the Attribute change.
-	UGC_AttributeSet* GC_AS = Cast<UGC_AttributeSet>(GetAttributeSet());
-	if (!GC_AS ) return;
-	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(GC_AS->GetHealthAttribute()).AddUObject(this,&ThisClass::OnHealthChanged);
 	
 	//Listen Dead Tag change by delegate
 	GetAbilitySystemComponent()->RegisterGameplayTagEvent(GCTags::GCEvents::Enemy::Dead,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&AGC_EnemyCharacter::OnDeadTagChanged);
