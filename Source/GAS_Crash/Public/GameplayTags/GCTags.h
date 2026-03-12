@@ -10,6 +10,7 @@ namespace GCTags
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Projectile)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Melee)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SecondaryAOEAbility)
 	}
 	
 	//AbilityTag used to activate abilities
@@ -42,6 +43,7 @@ namespace GCTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitReact);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(PrimaryAttack);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SecondaryAttack);
 		}
 
 		namespace Enemy
@@ -57,9 +59,19 @@ namespace GCTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy);
 	}
 
+	namespace State
+	{
+		namespace CC
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knockback)
+		}
+	}
+
 	namespace GameplayCue
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_DamageTaken_Melee);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_DamageTaken_Projectile);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_DamageTaken_SecondaryAOE); 
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Secondary_Explosion);
 	}
 }

@@ -6,6 +6,7 @@ namespace GCTags
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Projectile, "GCTags.SetByCaller.Projectile", "Tag for SetByCaller projectile damage magnitude.");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Melee, "GCTags.SetByCaller.Melee", "Tag for SetByCaller melee damage magnitude.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(SecondaryAOEAbility, "GCTags.SetByCaller.SecondaryAOEAbility", "Tag for SetByCaller secondary AOE ability.");
 	}
 
 	namespace GCAbilities
@@ -38,6 +39,7 @@ namespace GCTags
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact, "GCTags.GCEvents.player.HitReact", "Tag for player hit react event.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dead, "GCTags.GCEvents.player.Dead", "Tag for player dead state/event.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(PrimaryAttack, "GCTags.GCEvents.player.PrimaryAttack", "Tag for player primary attack event.");
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(SecondaryAttack, "GCTags.GCEvents.player.SecondaryAttack", "Tag for player secondary attack event.");
 		}
 
 		namespace Enemy
@@ -53,9 +55,19 @@ namespace GCTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Enemy, "GCTags.GCIdentity.Enemy", "Tag to identify enemy characters.");
 	}
 
+	namespace State
+	{
+		namespace CC
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Knockback, "State.CC.Knockback", "Enemy is currently under knockback crowd control.");
+		}
+	}
+
 	namespace GameplayCue
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_Melee, "GameplayCue.Character.DamageTaken.Melee", "GameplayCue tag for melee damage taken.");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_Projectile, "GameplayCue.Character.DamageTaken.Projectile", "GameplayCue tag for projectile damage taken.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_SecondaryAOE, "GameplayCue.Character.DamageTaken.SecondaryAOE", "GameplayCue tag for secondary AOE damage taken.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary_Explosion, "GameplayCue.Secondary.Explosion", "GameplayCue tag for secondary explosion.");
 	}
 }

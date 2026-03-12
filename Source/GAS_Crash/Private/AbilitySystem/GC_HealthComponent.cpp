@@ -96,10 +96,18 @@ void UGC_HealthComponent::HandleDamageConfirmed(const FGC_DamageFeedbackData& Da
 		}
 		else if (DamageData.EffectCauser.IsValid())
 		{
-			CueParameters.Location = DamageData.EffectCauser->GetActorLocation();
-			
-			const FVector ToOwner =(OwnerActor->GetActorLocation() - DamageData.EffectCauser->GetActorLocation()).GetSafeNormal();
-			CueParameters.Normal = -ToOwner;
+			const FVector ToOwner = (OwnerActor->GetActorLocation() - DamageData.EffectCauser->GetActorLocation()).GetSafeNormal();
+
+			if (DamageData.DamageTypeTag == GCTags::SetByCaller::SecondaryAOEAbility)
+			{
+				CueParameters.Location = OwnerActor->GetActorLocation();
+				CueParameters.Normal = ToOwner;
+			}
+			else
+			{
+				CueParameters.Location = DamageData.EffectCauser->GetActorLocation();
+				CueParameters.Normal = ToOwner;
+			}
 		}
 		
 		AbilitySystemComponent->ExecuteGameplayCue(CueTag,CueParameters);
@@ -121,6 +129,10 @@ FGameplayTag UGC_HealthComponent::ResolveCueTagFromDamageType(const FGameplayTag
 	if (DamageTypeTag == GCTags::SetByCaller::Projectile)
 	{
 		return GCTags::GameplayCue::Character_DamageTaken_Projectile;
+	}
+	if (DamageTypeTag == GCTags::SetByCaller::SecondaryAOEAbility)
+	{
+		return GCTags::GameplayCue::Character_DamageTaken_SecondaryAOE;
 	}
 	
 	return FGameplayTag();

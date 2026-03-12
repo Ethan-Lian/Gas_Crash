@@ -24,6 +24,8 @@ EBTNodeResult::Type UGC_BTTask_Attack::ExecuteTask(UBehaviorTreeComponent& Owner
 	UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent();
 	if (!BB) return EBTNodeResult::Failed;
 	
+	if (EnemyCharacter->GetAbilitySystemComponent()->HasMatchingGameplayTag(GCTags::State::CC::Knockback)) return EBTNodeResult::Failed;
+
 	//Activate Attack Ability
 	bool bSuccess = EnemyCharacter->GetAbilitySystemComponent()->TryActivateAbilitiesByTag(FGameplayTagContainer(GCTags::GCAbilities::Enemy::Attack));
 	

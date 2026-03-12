@@ -7,6 +7,7 @@
 
 class UAttributeSet;
 class UAbilitySystemComponent;
+struct FHitResult;
 
 // Forward declare delegate for enemy death event
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDied,AGC_EnemyCharacter*, EnemyCharacter);
@@ -22,12 +23,9 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	virtual UAttributeSet* GetAttributeSet() const override;
-
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
-	float AcceptanceRadius = 500.f;
 	
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|AI")
-	float AttackRadius = 150;
+	float AttackRadius = 900;
 	
 	//====================Death Event====================
 	
@@ -46,6 +44,11 @@ public:
 	
 	//Set Respawn Transform , called by Spawner when spawn nemy
 	void SetRespawnTransform(const FTransform& InTransform);
+
+	//====================Knockback State====================
+
+	//Enter Knockback State, called by GC_Secondary when apply knockback to enemy
+	void EnterKnockbackState(const FVector& LaunchVelocity, float RecoveryDelay);
 protected:
 	virtual void BeginPlay() override;
 	
@@ -60,6 +63,9 @@ protected:
 
 	//Handle Dead Tag Changed,called when Dead Tag count changed
 	void OnDeadTagChanged(const FGameplayTag CallbackTag, int32 NewCount);
+	
+	UFUNCTION()
+	void OnKnockbackLanded(const FHitResult& HitResult);
 private:
 	
 	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitySystem")
@@ -73,4 +79,22 @@ private:
 	
 	//Cache the handle of death effect, used to remove death effect when respawn.
 	FActiveGameplayEffectHandle ActivateDeathEffectHandle;
+
+	//Exit Knockback State, called when knockback landed or knockback recovery timeout, resume ai logic and movement.
+	void ExitKnockback();
+	
+	//Handle Knockback Recovery Timeout, called when knockback recovery timer expired, resume ai logic and movement.
+	void HandleKnockbackRecoveryTimeout();
+	
+	//Pause AI logic and movement when enemy is in knockback state, this is used to prevent weird movement like keep chasing player when enemy is knocked back.
+	void PauseAILogicForKnockback();
+	
+	//Resume AI logic and movement after knockback recovery, this is used to resume normal behavior after knockback ends.
+	void ResumeAILogicAfterKnockback();
+
+	FTimerHandle KnockbackRecoveryTimerHandle;
+
+	// Prevent duplicate AddDynamic / ResumeLogic mismatches.
+	bool bKnockbackLandedBound = false;
+	bool bKnockbackPausedBrainLogic = false;
 };

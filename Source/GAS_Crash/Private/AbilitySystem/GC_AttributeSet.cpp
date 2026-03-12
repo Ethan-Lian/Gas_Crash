@@ -64,8 +64,10 @@ void UGC_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 			Payload.EffectCauser = Data.EffectSpec.GetEffectContext().GetEffectCauser();
 			Payload.EffectContext = Data.EffectSpec.GetEffectContext();
 			
-			const float MeleeSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Melee);
-			const float ProjectileSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Projectile);
+			//Get the damage value from SetByCaller, and determine the damage type tag based on which SetByCaller magnitude is set.
+			const float MeleeSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Melee, false, 0.f);
+			const float ProjectileSetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::Projectile, false, 0.f);
+			const float SecondaryAOESetByCaller = Data.EffectSpec.GetSetByCallerMagnitude(GCTags::SetByCaller::SecondaryAOEAbility, false, 0.f);
 			
 			if (!FMath::IsNearlyZero(MeleeSetByCaller))
 			{
@@ -74,6 +76,10 @@ void UGC_AttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 			else if (!FMath::IsNearlyZero(ProjectileSetByCaller))
 			{
 				Payload.DamageTypeTag = GCTags::SetByCaller::Projectile;
+			}
+			else if (!FMath::IsNearlyZero(SecondaryAOESetByCaller))
+			{
+				Payload.DamageTypeTag = GCTags::SetByCaller::SecondaryAOEAbility;
 			}
 			
 			OnDamageConfirmed.Broadcast(Payload);

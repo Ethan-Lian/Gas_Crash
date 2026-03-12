@@ -8,6 +8,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameplayTags/GCTags.h"
+#include "TimerManager.h"
 
 AGC_EnemyCharacter::AGC_EnemyCharacter()
 {
@@ -39,6 +40,12 @@ void AGC_EnemyCharacter::BeginPlay()
 	//only in server,giving abilities,initialized Attribute,
 	if (HasAuthority())
 	{
+		//Set a loose tag count on the ASC to identify this as a enemy character, this is replicated to clients.
+		GetAbilitySystemComponent()->SetLooseGameplayTagCount(
+			GCTags::GCIdentity::Enemy,
+			1,
+			EGameplayTagReplicationState::TagAndCountToAll);
+
 		//inherits from MyBaseCharacter
 		GiveStartupAbilities(); 
 		//Initialize Attribute by GE
@@ -54,6 +61,25 @@ void AGC_EnemyCharacter::HandleDeath()
 	// Gate before Super so we can reuse base-state without relying on duplicated member.
 	if (!HasAuthority() || bDeathHandled) return;
 	Super::HandleDeath();
+
+	GetWorldTimerManager().ClearTimer(KnockbackRecoveryTimerHandle);
+
+	if (bKnockbackLandedBound)
+	{
+		LandedDelegate.RemoveDynamic(this, &AGC_EnemyCharacter::OnKnockbackLanded);
+		bKnockbackLandedBound = false;
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->SetLooseGameplayTagCount(
+			GCTags::State::CC::Knockback,
+			0,
+			EGameplayTagReplicationState::TagAndCountToAll);
+	}
+
+	bKnockbackPausedBrainLogic = false;
+
 	
 	//When Enemy dead Broadcast to spawner.
 	OnEnemyDied.Broadcast(this);
@@ -122,7 +148,26 @@ void AGC_EnemyCharacter::HandleRespawn()
 	if (!HasAuthority()) return;//server only
 	Super::HandleRespawn(); //bAlive = true
 	
-	 //Set the Enemy to spawn location
+	GetWorldTimerManager().ClearTimer(KnockbackRecoveryTimerHandle);
+
+	if (bKnockbackLandedBound)
+	{
+		LandedDelegate.RemoveDynamic(this, &AGC_EnemyCharacter::OnKnockbackLanded);
+		bKnockbackLandedBound = false;
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->SetLooseGameplayTagCount(
+			GCTags::State::CC::Knockback,
+			0,
+			EGameplayTagReplicationState::TagAndCountToAll);
+	}
+
+	bKnockbackPausedBrainLogic = false;
+
+
+	//Set the Enemy to spawn location
 	SetActorTransform(RespawnTransform);
 
 	//Allow to handle death next time
@@ -173,6 +218,123 @@ void AGC_EnemyCharacter::OnDeadTagChanged(const FGameplayTag CallbackTag, int32 
 		{
 			MC->SetMovementMode(MOVE_Walking);
 			MC->StopMovementImmediately();
+		}
+	}
+}
+
+
+void AGC_EnemyCharacter::EnterKnockbackState(const FVector& LaunchVelocity, float RecoveryDelay)
+{
+	if (!HasAuthority()) return;
+	
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC || !IsAlive()) return;
+	
+	ASC->SetLooseGameplayTagCount(GCTags::State::CC::Knockback,1,EGameplayTagReplicationState::TagAndCountToAll);
+	
+	//Handle AI Logic
+	PauseAILogicForKnockback();
+	
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->StopActiveMovement();
+		MovementComponent->StopMovementImmediately();
+	}
+	
+	if (!bKnockbackLandedBound)
+	{
+		LandedDelegate.AddUniqueDynamic(this,&AGC_EnemyCharacter::OnKnockbackLanded);
+		bKnockbackLandedBound = true;
+	}
+	
+	LaunchCharacter(LaunchVelocity,true,true);
+	
+	GetWorldTimerManager().ClearTimer(KnockbackRecoveryTimerHandle);
+	GetWorldTimerManager().SetTimer(
+		KnockbackRecoveryTimerHandle,
+		this,
+		&AGC_EnemyCharacter::HandleKnockbackRecoveryTimeout,
+		FMath::Max(RecoveryDelay,0.15f),
+		false);
+}
+
+void AGC_EnemyCharacter::OnKnockbackLanded(const FHitResult& HitResult)
+{
+	if (!HasAuthority()) return;
+	
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+	
+	if (ASC->HasMatchingGameplayTag(GCTags::State::CC::Knockback))
+	{
+		ExitKnockback();
+	}
+}
+
+void AGC_EnemyCharacter::ExitKnockback()
+{
+	if (!HasAuthority()) return;
+	
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	if (!ASC) return;
+	
+	if (!ASC->HasMatchingGameplayTag(GCTags::State::CC::Knockback)) return;
+	
+	GetWorldTimerManager().ClearTimer(KnockbackRecoveryTimerHandle);
+	
+	if (bKnockbackLandedBound)
+	{
+		LandedDelegate.RemoveDynamic(this,&AGC_EnemyCharacter::OnKnockbackLanded);
+		bKnockbackLandedBound = false;
+	}
+	
+	ASC->SetLooseGameplayTagCount(GCTags::State::CC::Knockback,0,EGameplayTagReplicationState::TagAndCountToAll);
+	
+	if (IsAlive())
+	{
+		ResumeAILogicAfterKnockback();
+	}
+	else
+	{
+		bKnockbackPausedBrainLogic = false;
+	}
+}
+
+void AGC_EnemyCharacter::HandleKnockbackRecoveryTimeout()
+{
+	ExitKnockback();
+}
+
+void AGC_EnemyCharacter::PauseAILogicForKnockback()
+{
+	AAIController* AI = Cast<AAIController>(GetController());
+	if (!AI) return;
+	
+	AI->StopMovement();
+	
+	UBrainComponent* BrainComponent = AI->GetBrainComponent();
+	if (BrainComponent)
+	{
+		if (!bKnockbackPausedBrainLogic)
+		{
+			BrainComponent->PauseLogic(TEXT("knockback"));
+			bKnockbackPausedBrainLogic = true;
+		}
+	}
+	
+}
+
+void AGC_EnemyCharacter::ResumeAILogicAfterKnockback()
+{
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+		{
+			if (bKnockbackPausedBrainLogic)
+			{
+				BrainComponent->ResumeLogic(TEXT("KnockbackEnded"));
+				bKnockbackPausedBrainLogic = false;
+			}
 		}
 	}
 }
