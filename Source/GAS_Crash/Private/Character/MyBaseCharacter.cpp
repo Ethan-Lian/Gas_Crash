@@ -1,5 +1,7 @@
 ﻿#include "GAS_Crash/Public/Character/MyBaseCharacter.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/GC_AbilitySet.h"
+#include "AbilitySystem/GC_AbilitySystemComponent.h"
 #include "AbilitySystem/GC_AttributeSet.h"
 #include "AbilitySystem/GC_HealthComponent.h"
 
@@ -17,52 +19,40 @@ UAbilitySystemComponent* AMyBaseCharacter::GetAbilitySystemComponent() const
 	return nullptr;
 }
 
-void AMyBaseCharacter::GiveStartupAbilities()
+void AMyBaseCharacter::GiveStartupAbilitySets()
 {
-	if (!IsValid(GetAbilitySystemComponent())) return;
-	for (const auto& Ability : StartupGameplayAbilities)
+	if (!HasAuthority() || bStartupAbilitySetsGranted) return;
+
+	UGC_AbilitySystemComponent* GCASC = Cast<UGC_AbilitySystemComponent>(GetAbilitySystemComponent());
+	if (!IsValid(GCASC)) return;
+
+	for (UGC_AbilitySet* AbilitySet : StartupAbilitySets)
 	{
-		if (!IsValid(Ability)){continue;}
+		// Always add a placeholder to maintain 1:1 index correspondence with StartupAbilitySets.
+		// This preserves the parallel array invariant for future per-set selective revocation.
+		FGC_AbilitySet_GrantedHandles& NewHandles = GrantedAbilitySetHandlesArray.AddDefaulted_GetRef();
+
+		if (!IsValid(AbilitySet)) continue;
 		
-		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(Ability);
-		GetAbilitySystemComponent()->GiveAbility(AbilitySpec);
+		AbilitySet->GiveToAbilitySystem(GCASC, &NewHandles, this);
 	}
+
+	bStartupAbilitySetsGranted = true;
 }
 
-void AMyBaseCharacter::InitializeAttribute() const
+void AMyBaseCharacter::ClearStartupAbilitySets()
 {
-	//check
-	if (!IsValid(GetAbilitySystemComponent()))
+	if (!HasAuthority() || !bStartupAbilitySetsGranted) return;
+
+	UGC_AbilitySystemComponent* GCASC = Cast<UGC_AbilitySystemComponent>(GetAbilitySystemComponent());
+	if (!IsValid(GCASC)) return;
+
+	for (FGC_AbilitySet_GrantedHandles& Handles : GrantedAbilitySetHandlesArray)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ASC is invalid in InitializeAttribute"));
-		return;
+		Handles.TakeFromAbilitySystem(GCASC);
 	}
-	
-	if (!IsValid(InitializeAttributesEffects))
-	{
-		UE_LOG(LogTemp,Error,TEXT("InitializeAttributesEffects not set for %s"),*GetName());
-		return;
-	}	
-	
-	//Create EffectContextHandle 
-	FGameplayEffectContextHandle EffectContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
-	EffectContextHandle.AddSourceObject(this); //mark,this is created from self
-	
-	//Create EffectSpecHandle
-	FGameplayEffectSpecHandle EffectSpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(
-		InitializeAttributesEffects,
-		1.f,
-		EffectContextHandle);
-	
-	
-	if (!EffectSpecHandle.IsValid())
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create EffectSpec for %s"), *GetName()); 
-		return;
-	}
-	
-	//Apply Effect to Character's Attribute
-	FActiveGameplayEffectHandle ActiveGameplayEffectHandle = GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+	GrantedAbilitySetHandlesArray.Reset();
+	bStartupAbilitySetsGranted = false;
 }
 
 void AMyBaseCharacter::ResetAttributes()
@@ -111,5 +101,11 @@ void AMyBaseCharacter::HandleRespawn()
 	
 	//reset attributes
 	ResetAttributes();
+}
+
+void AMyBaseCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ClearStartupAbilitySets();
+	Super::EndPlay(EndPlayReason);
 }
 

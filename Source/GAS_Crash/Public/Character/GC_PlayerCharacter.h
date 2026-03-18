@@ -39,7 +39,7 @@ protected:
 
 protected:
 	//Death Effect (adds Dead Tag)
-	UPROPERTY(EditDefaultsOnly,Category = "GC|Death")
+	UPROPERTY(EditDefaultsOnly,Category = "GC|Effects")
 	TSubclassOf<UGameplayEffect> DeathEffect;
 	
 	//Cache death effect handle for removal on respawn

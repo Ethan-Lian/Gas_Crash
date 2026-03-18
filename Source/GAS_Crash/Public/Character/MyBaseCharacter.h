@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
+#include "AbilitySystem/GC_AbilitySet.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "MyBaseCharacter.generated.h"
@@ -7,7 +8,6 @@
 struct FOnAttributeChangeData;
 class UAttributeSet;
 class UGameplayEffect;
-class UGameplayAbility;
 class UAbilitySystemComponent;
 class UGC_HealthComponent;
 
@@ -39,17 +39,20 @@ public:
 	//Handle Respawn
 	UFUNCTION(BlueprintCallable,Category="GC|Death")
 	virtual void HandleRespawn();
+
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	//Define a delegate for ASC initialization, used for asynchronous callback initialization
 	UPROPERTY(BlueprintAssignable)
 	FASCInitalized OnAscInitialized;
 protected:
-	void GiveStartupAbilities();
-	
-	//Apply Effects to CharacterAttribute
-	void InitializeAttribute() const;
-	
-	//Apply ResetAttributeEffect to CharacterAttribute
+	//Give Startup Abilities and Startup(Passive) Effects by AbilitySet, only called once in BeginPlay/OnPossessed.
+	void GiveStartupAbilitySets();
+
+	//Clear Startup Abilities and Startup(Passive) Effects by AbilitySet, only called once in EndPlay/OnUnPossessed.
+	void ClearStartupAbilitySets();
+
+	// Apply respawn reset effect to restore runtime attributes after death.
 	UFUNCTION(BlueprintCallable,Category="GC|Attributes")
 	void ResetAttributes();
 
@@ -57,14 +60,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Category="GC|Death")
 	bool bDeathHandled = false;
 	
+	//Initialize HealthComponent with ASC and AttributeSet.
 	void InitializeHealthComponent() const;
 private:
-	UPROPERTY(EditDefaultsOnly,Category="GC|Abilities")
-	TArray<TSubclassOf<UGameplayAbility>> StartupGameplayAbilities;
-	
-	UPROPERTY(EditDefaultsOnly,Category="GC|Effects")
-	TSubclassOf<UGameplayEffect> InitializeAttributesEffects;
-	
+	//Startup AbilitySets to grant(授予) when character spawn or possessed, can be set in BP child class.
+	UPROPERTY(EditDefaultsOnly, Category = "GC|AbilitySystem")
+	TArray<TObjectPtr<UGC_AbilitySet>> StartupAbilitySets;
+
+	// One GrantedHandles entry per AbilitySet (parallel array).
+	// This allows selective revocation of a single set's abilities without touching others —
+	// critical for equipment swapping (equip A grants ability X; swap to B revokes X, grants Y).
+	UPROPERTY()
+	TArray<FGC_AbilitySet_GrantedHandles> GrantedAbilitySetHandlesArray;
+
+	UPROPERTY()
+	bool bStartupAbilitySetsGranted = false;
+
 	UPROPERTY(EditDefaultsOnly,Category="GC|Effects")
 	TSubclassOf<UGameplayEffect> ResetAttributeEffects;
 	

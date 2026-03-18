@@ -1,57 +1,50 @@
-﻿#pragma once
+#pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "GC_PlayerController.generated.h"
 
 struct FGameplayTag;
 struct FInputActionValue;
-class UInputAction;
+class UEnhancedInputComponent;
+class UGC_AbilitySystemComponent;
+class UGC_InputConfig;
 class UInputMappingContext;
-
 
 UCLASS()
 class GAS_CRASH_API AGC_PlayerController : public APlayerController
 {
 	GENERATED_BODY()
+
 protected:
+
 	virtual void SetupInputComponent() override;
 	
-	// block player input when player died.
-	bool IsDied();
+	virtual void PlayerTick(float DeltaTime) override;
+
+	bool IsDied() const;
+	
+	UGC_AbilitySystemComponent* GetGCAbilitySystemComponent() const;
 
 private:
-	//InputMappingContext
-	UPROPERTY(EditDefaultsOnly,Category="GC|InputMappingContext")
+	UPROPERTY(EditDefaultsOnly, Category = "GC|Input")
+	TObjectPtr<UGC_InputConfig> InputConfig;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GC|Input")
 	TArray<TObjectPtr<UInputMappingContext>> InputMappingContexts;
+
+	void BindNativeInputActions(UEnhancedInputComponent* EnhancedInputComponent);
 	
-	//InputAction
-	UPROPERTY(EditDefaultsOnly,Category="GC|InputAction")
-	TObjectPtr<UInputAction> JumpAction;
+	void BindAbilityInputActions(UEnhancedInputComponent* EnhancedInputComponent);
 	
-	UPROPERTY(EditDefaultsOnly,Category="GC|InputAction")
-	TObjectPtr<UInputAction> MoveAction;
+	void Input_JumpPressed();
 	
-	UPROPERTY(EditDefaultsOnly,Category="GC|InputAction")
-	TObjectPtr<UInputAction> LookAction;
+	void Input_JumpReleased();
 	
-	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitiesAction")
-	TObjectPtr<UInputAction> PrimaryAction;
+	void Input_Look(const FInputActionValue& Value);
 	
-	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitiesAction")
-	TObjectPtr<UInputAction> SecondaryAction;
+	void Input_Move(const FInputActionValue& Value);
 	
-	UPROPERTY(EditDefaultsOnly,Category="GC|AbilitiesAction")
-	TObjectPtr<UInputAction> TertiaryAction;
+	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
 	
-	//Callback function
-	void Jump();
-	void JumpStop();
-	void Look(const FInputActionValue& value);
-	void Move(const FInputActionValue& value);
-	void Primary();
-	void Secondary();
-	void Tertiary();
-	
-	//Activate Ability Function by Tag
-	void ActivateAbility(const FGameplayTag& AbilityTag) const;
+	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
 };

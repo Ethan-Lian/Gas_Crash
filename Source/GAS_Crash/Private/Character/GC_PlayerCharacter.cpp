@@ -68,12 +68,9 @@ void AGC_PlayerCharacter::PossessedBy(AController* NewController)
 	
 	//Delegate ASC and AS
 	OnAscInitialized.Broadcast(GetAbilitySystemComponent(),GetAttributeSet());
-	
-	//StartupAbilities,only server can Give Ability.
-	GiveStartupAbilities();
-	
-	//Initialize Attribute by GE
-	InitializeAttribute();
+
+	//Startup passive/initialize effects and abilities are now granted by AbilitySet.
+	GiveStartupAbilitySets();
 	
 	//Listen Dead Tag change by delegate (for UI updates, animation state, etc.)
 	GetAbilitySystemComponent()->RegisterGameplayTagEvent(GCTags::GCEvents::player::Dead,EGameplayTagEventType::NewOrRemoved).AddUObject(this,&AGC_PlayerCharacter::OnDeadTagChanged);
