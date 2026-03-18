@@ -89,7 +89,7 @@ void UGC_HealthComponent::HandleDamageConfirmed(const FGC_DamageFeedbackData& Da
 			CueParameters.Location = HitResult->ImpactPoint.IsNearlyZero()
 			? HitResult->Location
 			: HitResult->ImpactPoint;
-			
+
 			CueParameters.Normal = HitResult->ImpactNormal.IsNearlyZero()
 			? HitResult->Normal
 			: HitResult->ImpactNormal;
@@ -98,7 +98,8 @@ void UGC_HealthComponent::HandleDamageConfirmed(const FGC_DamageFeedbackData& Da
 		{
 			const FVector ToOwner = (OwnerActor->GetActorLocation() - DamageData.EffectCauser->GetActorLocation()).GetSafeNormal();
 
-			if (DamageData.DamageTypeTag == GCTags::SetByCaller::SecondaryAOEAbility)
+			// AOE damage: location is the target itself (explosion center already passed)
+			if (DamageData.DamageTypeTag == GCTags::DamageType::AOE)
 			{
 				CueParameters.Location = OwnerActor->GetActorLocation();
 				CueParameters.Normal = ToOwner;
@@ -121,20 +122,25 @@ void UGC_HealthComponent::HandleDamageConfirmed(const FGC_DamageFeedbackData& Da
 
 FGameplayTag UGC_HealthComponent::ResolveCueTagFromDamageType(const FGameplayTag& DamageTypeTag) const
 {
-	if (DamageTypeTag == GCTags::SetByCaller::Melee)
+	// DamageType tags are now semantic labels set on the GE Context by the Ability,
+	// NOT the SetByCaller data-channel tags. This decoupling means:
+	//   - You can add a new damage source without inventing a new SetByCaller tag.
+	//   - The Cue dispatch logic here is the single source of truth for "what Cue plays".
+	if (DamageTypeTag == GCTags::DamageType::Melee)
 	{
 		return GCTags::GameplayCue::Character_DamageTaken_Melee;
 	}
-	
-	if (DamageTypeTag == GCTags::SetByCaller::Projectile)
+
+	if (DamageTypeTag == GCTags::DamageType::Projectile)
 	{
 		return GCTags::GameplayCue::Character_DamageTaken_Projectile;
 	}
-	if (DamageTypeTag == GCTags::SetByCaller::SecondaryAOEAbility)
+
+	if (DamageTypeTag == GCTags::DamageType::AOE)
 	{
 		return GCTags::GameplayCue::Character_DamageTaken_SecondaryAOE;
 	}
-	
+
 	return FGameplayTag();
 }
 

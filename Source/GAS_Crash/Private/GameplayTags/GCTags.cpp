@@ -2,11 +2,30 @@
 
 namespace GCTags
 {
+	namespace InputTag
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Move, "InputTag.Move", "Tag for move input.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Look, "InputTag.Look", "Tag for look input.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Jump, "InputTag.Jump", "Tag for jump input.");
+
+		namespace Ability
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Primary, "InputTag.Ability.Primary", "Tag for primary ability input.");
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary, "InputTag.Ability.Secondary", "Tag for secondary ability input.");
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary, "InputTag.Ability.Tertiary", "Tag for tertiary ability input.");
+		}
+	}
+
 	namespace SetByCaller
 	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Projectile, "GCTags.SetByCaller.Projectile", "Tag for SetByCaller projectile damage magnitude.");
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Melee, "GCTags.SetByCaller.Melee", "Tag for SetByCaller melee damage magnitude.");
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(SecondaryAOEAbility, "GCTags.SetByCaller.SecondaryAOEAbility", "Tag for SetByCaller secondary AOE ability.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Damage, "GCTags.SetByCaller.Damage", "Unified damage magnitude for the ExecCalc pipeline.");
+	}
+
+	namespace DamageType
+	{
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Melee, "DamageType.Melee", "Semantic label: damage originated from a melee strike.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Projectile, "DamageType.Projectile", "Semantic label: damage originated from a projectile.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(AOE, "DamageType.AOE", "Semantic label: damage originated from an area-of-effect.");
 	}
 
 	namespace GCAbilities
@@ -32,14 +51,13 @@ namespace GCTags
 
 	namespace GCEvents
 	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(KillScored, "GCTags.GCEvents.KillScored", "Tag for kill scored event.");
-
 		namespace player
 		{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact, "GCTags.GCEvents.player.HitReact", "Tag for player hit react event.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Dead, "GCTags.GCEvents.player.Dead", "Tag for player dead state/event.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(PrimaryAttack, "GCTags.GCEvents.player.PrimaryAttack", "Tag for player primary attack event.");
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(SecondaryAttack, "GCTags.GCEvents.player.SecondaryAttack", "Tag for player secondary attack event.");
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(TertiaryAttack, "GCTags.GCEvents.player.TertiaryAttack", "Tag for player tertiary attack event.");
 		}
 
 		namespace Enemy
@@ -69,5 +87,14 @@ namespace GCTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_Projectile, "GameplayCue.Character.DamageTaken.Projectile", "GameplayCue tag for projectile damage taken.");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_SecondaryAOE, "GameplayCue.Character.DamageTaken.SecondaryAOE", "GameplayCue tag for secondary AOE damage taken.");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary_Explosion, "GameplayCue.Secondary.Explosion", "GameplayCue tag for secondary explosion.");
+	}
+
+	namespace Cooldown
+	{
+		namespace Ability
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Primary, "Cooldown.Ability.Primary", "Cooldown tag for primary melee ability.");
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary, "Cooldown.Ability.Secondary", "Cooldown tag for secondary AOE ability.");
+		}
 	}
 }
