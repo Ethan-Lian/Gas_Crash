@@ -21,7 +21,7 @@ protected:
 	TSubclassOf<UGameplayEffect> DamageEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GC|Secondary|Damage")
-	float BaseDamage = -40.f;
+	float BaseDamage = 40.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GC|Secondary|AOE", meta = (ClampMin = "0.0"))
 	float AOERadius = 400.f;

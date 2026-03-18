@@ -28,8 +28,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GC|Attack")
 	FName MuzzleSocketName = FName("Muzzle_Front");
 
+	// ⭐ Positive value — ExecCalc handles the subtraction internally.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GC|Attack")
-	float ProjectileDamage = -20.f;
+	float ProjectileDamage = 20.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GC|Attack")
 	FVector SpawnLocationOffset = FVector::ZeroVector;
