@@ -1,4 +1,5 @@
 ﻿#include "GameObjects/GC_Projectile.h"
+#include "AbilitySystem/GC_GameplayEffectContext.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Character/GC_PlayerCharacter.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -34,17 +35,22 @@ void AGC_Projectile::NotifyActorBeginOverlap(AActor* OtherActor)
 
 	// Make the damage effect spec.
 	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
-	ContextHandle.AddInstigator(SourceActor,this);
+	ContextHandle.AddInstigator(SourceActor, this);
 	ContextHandle.AddSourceObject(this);
 
-	FGameplayEffectSpecHandle DamageEffectSpecHandle = SourceASC->MakeOutgoingSpec(DamageEffect,1.0,ContextHandle);
-	if(!DamageEffectSpecHandle.IsValid()) return;
+	if (FGC_GameplayEffectContext* GCContext = FGC_GameplayEffectContext::ExtractEffectContext(ContextHandle))
+	{
+		GCContext->SetDamageTypeTag(GCTags::DamageType::Projectile);
+	}
 
-	// Set the damage magnitude in the effect spec using the SetByCaller tag.
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(DamageEffectSpecHandle,GCTags::SetByCaller::Projectile,Damage);
-	
+	FGameplayEffectSpecHandle DamageEffectSpecHandle = SourceASC->MakeOutgoingSpec(DamageEffect, 1.0f, ContextHandle);
+	if (!DamageEffectSpecHandle.IsValid()) return;
+
+	// Unified SetByCaller::Damage tag — ExecCalc reads this.
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(DamageEffectSpecHandle, GCTags::SetByCaller::Damage, Damage);
+
 	// Apply the damage effect spec to the target.
-	SourceASC->ApplyGameplayEffectSpecToTarget(*DamageEffectSpecHandle.Data.Get(),TargetASC);
+	SourceASC->ApplyGameplayEffectSpecToTarget(*DamageEffectSpecHandle.Data.Get(), TargetASC);
 	
 	//Spawn Boom ParticleImpactEffect
 	SpawnImpactEffects();

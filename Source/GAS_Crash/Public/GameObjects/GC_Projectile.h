@@ -17,8 +17,9 @@ public:
 	//when overlap actor auto trigger this function.
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 	
+	// ⭐ Positive value — ExecCalc handles the subtraction internally.
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category="GC|Damage",meta=(ExposeOnSpawn,ClampMin="0.0"))
-	float Damage = -20.f;
+	float Damage = 20.f;
 	
 	UFUNCTION(BlueprintImplementableEvent,Category="GC|Projectile")
 	void SpawnImpactEffects();

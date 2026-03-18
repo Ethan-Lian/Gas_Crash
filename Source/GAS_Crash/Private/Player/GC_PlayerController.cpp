@@ -1,136 +1,201 @@
-﻿#include "Player/GC_PlayerController.h"
+#include "Player/GC_PlayerController.h"
+
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/GC_AbilitySystemComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputMappingContext.h"
 #include "GameFramework/Character.h"
 #include "GameplayTags/GCTags.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
+#include "Player/GC_InputConfig.h"
+
 void AGC_PlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
-	
-	//Enhanced Input Subsystem is used to manage input mappings and contexts for the local player
-	UEnhancedInputLocalPlayerSubsystem* InputLocalPlayerSubsystem = 
-		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-	
-	if (!IsValid(InputLocalPlayerSubsystem)) return;
-	
-	//Get Input Mapping Contexts and add to subsystem
-	for (UInputMappingContext* Context : InputMappingContexts)
+
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
-		InputLocalPlayerSubsystem->AddMappingContext(Context,0);
+		if (UEnhancedInputLocalPlayerSubsystem* InputLocalPlayerSubsystem =
+			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
+		{
+			for (UInputMappingContext* Context : InputMappingContexts)
+			{
+				if (IsValid(Context))
+				{
+					InputLocalPlayerSubsystem->AddMappingContext(Context, 0);
+				}
+			}
+		}
 	}
-	
-	//Get EnhanceInputComponent
+
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
-	
-	if (!IsValid(EnhancedInputComponent)) return;
+	if (!IsValid(EnhancedInputComponent) || !IsValid(InputConfig))
+	{
+		return;
+	}
 
-	//Binding input actions to ability activation
-	EnhancedInputComponent->BindAction(JumpAction,ETriggerEvent::Started,this,&ThisClass::Jump);//this和&ThisClass::jump是啥意思
-	EnhancedInputComponent->BindAction(JumpAction,ETriggerEvent::Completed,this,&AGC_PlayerController::JumpStop);
-	EnhancedInputComponent->BindAction(MoveAction,ETriggerEvent::Triggered,this,&AGC_PlayerController::Move);
-	EnhancedInputComponent->BindAction(LookAction,ETriggerEvent::Triggered,this,&AGC_PlayerController::Look);
-	EnhancedInputComponent->BindAction(PrimaryAction,ETriggerEvent::Triggered,this,&AGC_PlayerController::Primary);
-	EnhancedInputComponent->BindAction(SecondaryAction,ETriggerEvent::Started,this,&AGC_PlayerController::Secondary);
-	EnhancedInputComponent->BindAction(TertiaryAction,ETriggerEvent::Started,this,&AGC_PlayerController::Tertiary);
+	BindNativeInputActions(EnhancedInputComponent);
+	BindAbilityInputActions(EnhancedInputComponent);
 }
 
-/*
- * Input callback function
- */
-void AGC_PlayerController::Jump()
+void AGC_PlayerController::PlayerTick(float DeltaTime)
 {
-	if (!IsValid(GetCharacter())) return;
+	Super::PlayerTick(DeltaTime);
 
-	//Block jump when dead
-	if (IsDied()) return;
+	if (UGC_AbilitySystemComponent* GCASC = GetGCAbilitySystemComponent())
+	{
+		if (IsDied())
+		{
+			GCASC->ClearAbilityInput();
+			return;
+		}
 
-	GetCharacter()->Jump();
+		GCASC->ProcessAbilityInput(DeltaTime, IsPaused());
+	}
 }
 
-void AGC_PlayerController::JumpStop()
+void AGC_PlayerController::BindNativeInputActions(UEnhancedInputComponent* EnhancedInputComponent)
 {
-	if (!IsValid(GetCharacter())) return;
-	
-	if (IsDied()) return;
-	
-	GetCharacter()->StopJumping();
+	if (!IsValid(InputConfig) || !IsValid(EnhancedInputComponent))
+	{
+		return;
+	}
+
+	if (const UInputAction* JumpIA = InputConfig->FindNativeInputActionForTag(GCTags::InputTag::Jump, false))
+	{
+		EnhancedInputComponent->BindAction(JumpIA, ETriggerEvent::Started, this, &ThisClass::Input_JumpPressed);
+		EnhancedInputComponent->BindAction(JumpIA, ETriggerEvent::Completed, this, &ThisClass::Input_JumpReleased);
+	}
+
+	if (const UInputAction* MoveIA = InputConfig->FindNativeInputActionForTag(GCTags::InputTag::Move, false))
+	{
+		EnhancedInputComponent->BindAction(MoveIA, ETriggerEvent::Triggered, this, &ThisClass::Input_Move);
+	}
+
+	if (const UInputAction* LookIA = InputConfig->FindNativeInputActionForTag(GCTags::InputTag::Look, false))
+	{
+		EnhancedInputComponent->BindAction(LookIA, ETriggerEvent::Triggered, this, &ThisClass::Input_Look);
+	}
 }
 
-void AGC_PlayerController::Move(const FInputActionValue& value)
+void AGC_PlayerController::BindAbilityInputActions(UEnhancedInputComponent* EnhancedInputComponent)
 {
-	//ue5编辑器里面InputAction设置的y是向前
-	//2维系统里面x是左右,y是上下,3维系统里x是向前,y是右
-	if (!IsValid(GetPawn())) return;
+	if (!IsValid(InputConfig) || !IsValid(EnhancedInputComponent))
+	{
+		return;
+	}
 
-	// Block input when player is dead
-	if (IsDied()) return;
+	for (const FGC_InputAction& Action : InputConfig->AbilityInputActions)
+	{
+		if (!Action.InputAction || !Action.InputTag.IsValid())
+		{
+			continue;
+		}
 
-	//设置的InputAction里面需要的是一个2维向量,y是向前,x是左右
-	const FVector2D MovementVector = value.Get<FVector2D>();
+		EnhancedInputComponent->BindAction(
+			Action.InputAction,
+			ETriggerEvent::Started,
+			this,
+			&ThisClass::Input_AbilityInputTagPressed,
+			Action.InputTag);
 
-	//find which way is forward and right
-	const FRotator YawRotation(0.f,GetControlRotation().Yaw,0.f);
+		EnhancedInputComponent->BindAction(
+			Action.InputAction,
+			ETriggerEvent::Completed,
+			this,
+			&ThisClass::Input_AbilityInputTagReleased,
+			Action.InputTag);
+
+		// Canceled fires when a hold trigger releases early or input is interrupted.
+		// Without this, the spec stays stuck in InputHeldSpecHandles.
+		EnhancedInputComponent->BindAction(
+			Action.InputAction,
+			ETriggerEvent::Canceled,
+			this,
+			&ThisClass::Input_AbilityInputTagReleased,
+			Action.InputTag);
+	}
+}
+
+void AGC_PlayerController::Input_JumpPressed()
+{
+	if (IsDied())
+	{
+		return;
+	}
+
+	if (ACharacter* ControlledCharacter = GetCharacter())
+	{
+		ControlledCharacter->Jump();
+	}
+}
+
+void AGC_PlayerController::Input_JumpReleased()
+{
+	if (ACharacter* ControlledCharacter = GetCharacter())
+	{
+		ControlledCharacter->StopJumping();
+	}
+}
+
+void AGC_PlayerController::Input_Move(const FInputActionValue& Value)
+{
+	if (!IsValid(GetPawn()) || IsDied())
+	{
+		return;
+	}
+
+	const FVector2D MovementVector = Value.Get<FVector2D>();
+	const FRotator YawRotation(0.f, GetControlRotation().Yaw, 0.f);
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	//Add MovementInput
-	GetPawn()->AddMovementInput(ForwardDirection,MovementVector.Y);
-	GetPawn()->AddMovementInput(RightDirection,MovementVector.X);
-
+	GetPawn()->AddMovementInput(ForwardDirection, MovementVector.Y);
+	GetPawn()->AddMovementInput(RightDirection, MovementVector.X);
 }
 
-void AGC_PlayerController::Look(const FInputActionValue& value)
+void AGC_PlayerController::Input_Look(const FInputActionValue& Value)
 {
-	if (!IsValid(GetPawn())) return;
+	if (!IsValid(GetPawn()) || IsDied())
+	{
+		return;
+	}
 
-	if (IsDied()) return;
-	
-	const FVector2D MovementVector = value.Get<FVector2D>();
-	AddYawInput(MovementVector.X);
-	AddPitchInput(MovementVector.Y);
+	const FVector2D LookVector = Value.Get<FVector2D>();
+	AddYawInput(LookVector.X);
+	AddPitchInput(LookVector.Y);
 }
 
-void AGC_PlayerController::Primary()
+void AGC_PlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
-	if (IsDied()) return;
-	ActivateAbility(GCTags::GCAbilities::player::Primary);
+	if (IsDied())
+	{
+		return;
+	}
+
+	if (UGC_AbilitySystemComponent* GCASC = GetGCAbilitySystemComponent())
+	{
+		GCASC->AbilityInputTagPressed(InputTag);
+	}
 }
 
-void AGC_PlayerController::Secondary()
+void AGC_PlayerController::Input_AbilityInputTagReleased(FGameplayTag InputTag)
 {
-	if (IsDied()) return;
-	ActivateAbility(GCTags::GCAbilities::player::Secondary);
+	if (UGC_AbilitySystemComponent* GCASC = GetGCAbilitySystemComponent())
+	{
+		GCASC->AbilityInputTagReleased(InputTag);
+	}
 }
 
-void AGC_PlayerController::Tertiary()
+bool AGC_PlayerController::IsDied() const
 {
-	if (IsDied()) return;
-	ActivateAbility(GCTags::GCAbilities::player::Tertiary);
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
+	return ASC && ASC->HasMatchingGameplayTag(GCTags::GCEvents::player::Dead);
 }
 
-
-void AGC_PlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const
+UGC_AbilitySystemComponent* AGC_PlayerController::GetGCAbilitySystemComponent() const
 {
-	// Use UAbilitySystemBlueprintLibrary to get ASC
-	UAbilitySystemComponent* AbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
-	if (!IsValid(AbilitySystemComponent)) return;
-
-	// Block ability activation when dead
-	// This prevents attacking/using abilities during death state
-	if (AbilitySystemComponent->HasMatchingGameplayTag(GCTags::GCEvents::player::Dead)) return;
-
-	//Activate Ability by ASC.
-	AbilitySystemComponent->TryActivateAbilitiesByTag(AbilityTag.GetSingleTagContainer());
-}
-
-bool AGC_PlayerController::IsDied()
-{
-	UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
-	
-	if (ASC && ASC->HasMatchingGameplayTag(GCTags::GCEvents::player::Dead)) return true;
-	
-	return false;
+	return Cast<UGC_AbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn()));
 }

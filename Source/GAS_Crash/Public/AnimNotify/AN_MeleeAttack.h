@@ -59,9 +59,6 @@ private:
 	TSubclassOf<UGameplayEffect> DamageEffect;
 
 	UPROPERTY(EditAnywhere, Category = "GC|Damage")
-	FGameplayTag DamageSetByCallerTag;
-
-	UPROPERTY(EditAnywhere, Category = "GC|Damage")
 	float DamageMagnitude = -20.f;
 
 	//==============Debug parameter======================
@@ -86,9 +83,6 @@ private:
 	
 	//Apply damage effect to TargetActor
 	void ApplyDamageToTarget(AActor* SourceActor, UAbilitySystemComponent* SourceASC, AActor* TargetActor,const FHitResult& HitResult) const;
-	
-	//Resolve the SetByCaller tag to use for this attack, fallback to default if not set.
-	FGameplayTag ResolveDamageSetByCallerTag() const;
 	
 	FVector GetSocketLocationSafe(const USkeletalMeshComponent* MeshComp, const FName& SocketName, const FVector& FallbackLocation) const;
 	

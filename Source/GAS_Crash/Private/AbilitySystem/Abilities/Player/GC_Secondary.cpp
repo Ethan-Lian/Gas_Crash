@@ -1,4 +1,5 @@
 ﻿#include "AbilitySystem/Abilities/Player/GC_Secondary.h"
+#include "AbilitySystem/GC_GameplayEffectContext.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Character/MyBaseCharacter.h"
@@ -124,15 +125,18 @@ void UGC_Secondary::ApplyDamageToTarget(AActor* TargetActor, float DamageScale) 
 	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
 	ContextHandle.AddInstigator(SourceActor, SourceActor);
 	ContextHandle.AddSourceObject(SourceActor);
+
+	if (FGC_GameplayEffectContext* GCContext = FGC_GameplayEffectContext::ExtractEffectContext(ContextHandle))
+	{
+		GCContext->SetDamageTypeTag(GCTags::DamageType::AOE);
+	}
+
 	FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageEffect, GetAbilityLevel(), ContextHandle);
 	if (!SpecHandle.IsValid()) return;
 
 	const float FinalDamage = BaseDamage * DamageScale;
 
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
-		SpecHandle,
-		GCTags::SetByCaller::SecondaryAOEAbility,
-		FinalDamage);
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, GCTags::SetByCaller::Damage, FinalDamage);
 
 	SourceASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 }

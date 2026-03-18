@@ -32,19 +32,42 @@ public:
 	ATTRIBUTE_ACCESSORS(ThisClass,MaxHealth);
 	ATTRIBUTE_ACCESSORS(ThisClass,Mana);
 	ATTRIBUTE_ACCESSORS(ThisClass,MaxMana);
-	
+	ATTRIBUTE_ACCESSORS(ThisClass,Armor);
+
+	// Meta Attributes
+	// IncomingDamage is a "scratch pad" value — it is NEVER replicated and NEVER shown in UI.
+	// The ExecCalc writes the final computed damage here; PostGameplayEffectExecute reads,
+	// applies it to Health, then immediately zeros it out.
+	// This decouples the "how much damage" calculation (ExecCalc) from the "what happens
+	// to the character" side-effects (PostGEExecute: clamp, shield, death check, feedback).
+	ATTRIBUTE_ACCESSORS(ThisClass, IncomingDamage);
+	ATTRIBUTE_ACCESSORS(ThisClass, IncomingHealing);
+
 	//================Attribute Define================
 	UPROPERTY(BlueprintReadOnly,ReplicatedUsing=OnRep_Health)
 	FGameplayAttributeData Health;
-	
+
 	UPROPERTY(BlueprintReadOnly,ReplicatedUsing=OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
-	
+
 	UPROPERTY(BlueprintReadOnly,ReplicatedUsing=OnRep_Mana)
 	FGameplayAttributeData Mana;
-	
+
 	UPROPERTY(BlueprintReadOnly,ReplicatedUsing=OnRep_MaxMana)
 	FGameplayAttributeData MaxMana;
+
+	// Armor is captured by the ExecCalc (GC_DamageExecution) from the TARGET's AttributeSet.
+	// This is the core reason ExecCalc exists over simple Modifiers — it can read attributes
+	// from BOTH source and target to compute cross-actor formulas like damage reduction.
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Armor)
+	FGameplayAttributeData Armor;
+
+	// Meta Attributes — not replicated, consumed and cleared in PostGameplayEffectExecute.
+	UPROPERTY(BlueprintReadOnly, Category = "GC|Attributes|Meta")
+	FGameplayAttributeData IncomingDamage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "GC|Attributes|Meta")
+	FGameplayAttributeData IncomingHealing;
 	
 	//================Hook Function========================
 	
@@ -60,6 +83,9 @@ public:
 	
 	UFUNCTION()
 	void OnRep_MaxMana(const FGameplayAttributeData& OldValue) const;
+
+	UFUNCTION()
+	void OnRep_Armor(const FGameplayAttributeData& OldValue) const;
 	
 	//================Delegate========================
 
@@ -86,7 +112,16 @@ public:
 	UFUNCTION()
 	void OnRep_AttributeInitialized();
 	
-	//Callback function after attribute changed, only triggered when the value change is effective, 
+	// ⭐⭐⭐ Interview Point: PreAttributeChange vs PostGameplayEffectExecute
+	// PreAttributeChange clamps the CURRENT VALUE (the value seen by queries like GetMana()).
+	// It does NOT modify the BaseValue — if you need BaseValue correction, use PostGEExecute with SetHealth().
+	// This is defense-in-depth for the Cost system: prevents Mana from displaying as negative
+	// even if a Cost GE overshoots. CheckCost via CanApplyAttributeModifiers() already blocks
+	// activation when resources are insufficient, but edge cases (prediction, simultaneous GEs)
+	// can still produce negative intermediate values.
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+
+	//Callback function after attribute changed, only triggered when the value change is effective,
 	//trigger timing: after GE modify BaseValue, before attribute replication, always triggered on server, only triggered on client when local prediction succeed.
 	virtual void  PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 };

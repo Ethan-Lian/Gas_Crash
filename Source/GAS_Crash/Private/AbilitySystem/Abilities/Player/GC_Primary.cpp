@@ -1,4 +1,5 @@
 ﻿#include "AbilitySystem/Abilities/Player/GC_Primary.h"
+#include "AbilitySystem/GC_GameplayEffectContext.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Engine/OverlapResult.h"
@@ -73,27 +74,37 @@ void UGC_Primary::SendEventToEnemy(const TArray<AActor*>& OverlapActors)
 
 void UGC_Primary::ApplyDamageEffectToHitResult(const TArray<AActor*>& Actors)
 {
-	UAbilitySystemComponent* SourceASC  = GetAbilitySystemComponentFromActorInfo();
-	if (!IsValid(SourceASC )) return;
-	
-	//Create EffectSpecHandle
-	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
-	ContextHandle.AddInstigator(GetAbilitySystemComponentFromActorInfo()->GetAvatarActor(),GetAbilitySystemComponentFromActorInfo()->GetAvatarActor());
-	FGameplayEffectSpecHandle EffectSpecHandle= SourceASC->MakeOutgoingSpec(DamageEffect,GetAbilityLevel(),ContextHandle);
-	if (!EffectSpecHandle.IsValid()) return;
+	UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
+	if (!IsValid(SourceASC) || !DamageEffect) return;
 
-	//Get EffectSpec
-	FGameplayEffectSpec EffectSpec = *EffectSpecHandle.Data.Get();
-	
-	for (AActor* Actor : Actors)  
-	{       
+	AActor* AvatarActor = GetAvatarActorFromActorInfo();
+
+	// MakeEffectContext() now returns FGC_GameplayEffectContext (via AbilitySystemGlobals).
+	// We cast it immediately to write semantic metadata BEFORE making the Spec.
+	// The Context travels with the Spec all the way into ExecCalc and PostGEExecute.
+	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
+	ContextHandle.AddInstigator(AvatarActor, AvatarActor);
+
+	if (FGC_GameplayEffectContext* GCContext = FGC_GameplayEffectContext::ExtractEffectContext(ContextHandle))
+	{
+		GCContext->SetDamageTypeTag(GCTags::DamageType::Melee);
+		// Future: GCContext->SetIsCriticalHit(RollCritChance());
+	}
+
+	FGameplayEffectSpecHandle SpecHandle = SourceASC->MakeOutgoingSpec(DamageEffect, GetAbilityLevel(), ContextHandle);
+	if (!SpecHandle.IsValid()) return;
+
+	// Unified SetByCaller::Damage tag — ExecCalc reads this.
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, GCTags::SetByCaller::Damage, BaseDamage);
+
+	const FGameplayEffectSpec& EffectSpec = *SpecHandle.Data.Get();
+	for (AActor* Actor : Actors)
+	{
 		if (!IsValid(Actor)) continue;
-		
-		UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Actor);  
-		if (!IsValid(TargetASC)) continue;  
-		
-		SourceASC->ApplyGameplayEffectSpecToTarget(EffectSpec,TargetASC);
-	}  
+		UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Actor);
+		if (!IsValid(TargetASC)) continue;
+		SourceASC->ApplyGameplayEffectSpecToTarget(EffectSpec, TargetASC);
+	}
 }
 
 void UGC_Primary::DrawHitBoxOverlap(const FVector& Location, const TArray<FOverlapResult>& OverlapResults) const

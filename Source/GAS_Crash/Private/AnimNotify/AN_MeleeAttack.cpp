@@ -1,4 +1,5 @@
 ﻿#include "AnimNotify/AN_MeleeAttack.h"
+#include "AbilitySystem/GC_GameplayEffectContext.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Character/MyBaseCharacter.h"
@@ -181,24 +182,24 @@ void UAN_MeleeAttack::ApplyDamageToTarget(AActor* SourceActor, UAbilitySystemCom
 	FGameplayEffectContextHandle ContextHandle = SourceASC->MakeEffectContext();
 	ContextHandle.AddInstigator(SourceActor,SourceActor);
 	ContextHandle.AddSourceObject(SourceActor);
-	//
 	ContextHandle.AddHitResult(HitResult,true);
+
+	// Semantic damage type drives downstream cue dispatch and hit react routing.
+	if (FGC_GameplayEffectContext* GCContext = FGC_GameplayEffectContext::ExtractEffectContext(ContextHandle))
+	{
+		GCContext->SetDamageTypeTag(GCTags::DamageType::Melee);
+	}
 	
 	FGameplayEffectSpecHandle EffectSpecHandle = SourceASC->MakeOutgoingSpec(DamageEffect,1,ContextHandle);
 	if (!EffectSpecHandle.IsValid()) return;
-	
-	const FGameplayTag SetByCallerTag = ResolveDamageSetByCallerTag();
-	if (SetByCallerTag.IsValid())
-	{
-		UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(EffectSpecHandle,SetByCallerTag,DamageMagnitude);
-	}
+
+	// Unified damage pipeline: all damage magnitudes go through SetByCaller::Damage.
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(
+		EffectSpecHandle,
+		GCTags::SetByCaller::Damage,
+		DamageMagnitude);
 	
 	SourceASC->ApplyGameplayEffectSpecToTarget(*EffectSpecHandle.Data.Get(),TargetASC);
-}
-
-FGameplayTag UAN_MeleeAttack::ResolveDamageSetByCallerTag() const
-{
-	return DamageSetByCallerTag.IsValid() ? DamageSetByCallerTag : GCTags::SetByCaller::Melee;
 }
 
 FVector UAN_MeleeAttack::GetSocketLocationSafe(const USkeletalMeshComponent* MeshComp, const FName& SocketName,

@@ -37,7 +37,7 @@ void AGC_EnemyCharacter::BeginPlay()
 	
 	OnAscInitialized.Broadcast(GetAbilitySystemComponent(),GetAttributeSet());
 	
-	//only in server,giving abilities,initialized Attribute,
+	//only in server, giving startup abilities and startup passive effects.
 	if (HasAuthority())
 	{
 		//Set a loose tag count on the ASC to identify this as a enemy character, this is replicated to clients.
@@ -46,10 +46,8 @@ void AGC_EnemyCharacter::BeginPlay()
 			1,
 			EGameplayTagReplicationState::TagAndCountToAll);
 
-		//inherits from MyBaseCharacter
-		GiveStartupAbilities(); 
-		//Initialize Attribute by GE
-		InitializeAttribute(); 
+		// AbilitySet now owns startup passive effects and initialization GE.
+		GiveStartupAbilitySets();
 	}
 	
 	//Listen Dead Tag change by delegate
@@ -166,13 +164,9 @@ void AGC_EnemyCharacter::HandleRespawn()
 
 	bKnockbackPausedBrainLogic = false;
 
-
 	//Set the Enemy to spawn location
 	SetActorTransform(RespawnTransform);
 
-	//Allow to handle death next time
-	bDeathHandled = false;
-	
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 	{
 		//Clear death effect in order to remove dead tag

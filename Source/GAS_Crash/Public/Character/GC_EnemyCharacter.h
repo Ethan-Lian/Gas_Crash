@@ -34,7 +34,7 @@ public:
 	FOnEnemyDied OnEnemyDied;
 	
 	//GE_Death
-	UPROPERTY(EditAnywhere,Category="GC|Abilties")
+	UPROPERTY(EditAnywhere,Category="GC|Effects")
 	TSubclassOf<UGameplayEffect> GE_Death;
 	
 	//====================Respawn Event===================
