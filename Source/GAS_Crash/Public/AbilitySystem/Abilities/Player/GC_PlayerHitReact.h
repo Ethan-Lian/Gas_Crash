@@ -33,10 +33,17 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "GC|HitReact")
 	FName HitReactSectionName = NAME_None;
-
+	
+	// The magnitude can be used to drive a dynamic hit react cue that scales with damage, for example.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GC|HitReact|Cue")
+	float HitReactCueMagnitude = 1.0f;
+	
 	UFUNCTION(BlueprintImplementableEvent, Category = "GC|HitReact")
 	void BP_StartHitReact(FName InSectionName, FVector InTargetForward, FVector InToInstigator);
 
 	UFUNCTION(BlueprintCallable, Category = "GC|HitReact")
 	void FinishHitReactAbility(bool bWasCancelled = false);
+
+private:
+	void ExecuteHitReactCue(const FGameplayEventData* TriggerEventData) const;
 };

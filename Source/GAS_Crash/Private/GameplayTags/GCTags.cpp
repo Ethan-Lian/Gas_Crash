@@ -75,6 +75,11 @@ namespace GCTags
 
 	namespace State
 	{
+		namespace Buff
+		{
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(SuperArmor, "State.Buff.SuperArmor", "Player is temporarily immune to hit react interruption.");
+		}
+
 		namespace CC
 		{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Knockback, "State.CC.Knockback", "Enemy is currently under knockback crowd control.");
@@ -87,6 +92,9 @@ namespace GCTags
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_Projectile, "GameplayCue.Character.DamageTaken.Projectile", "GameplayCue tag for projectile damage taken.");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Character_DamageTaken_SecondaryAOE, "GameplayCue.Character.DamageTaken.SecondaryAOE", "GameplayCue tag for secondary AOE damage taken.");
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary_Explosion, "GameplayCue.Secondary.Explosion", "GameplayCue tag for secondary explosion.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary_Buff, "GameplayCue.Tertiary.Buff", "GameplayCue tag for tertiary buff release particles.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary_Explosion_Sound, "GameplayCue.Secondary.Explosion.Sound", "GameplayCue tag for secondary explosion sound effect.");
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Player_HitReact, "GameplayCue.Player.HitReact", "GameplayCue tag for player hit react event.");
 	}
 
 	namespace Cooldown

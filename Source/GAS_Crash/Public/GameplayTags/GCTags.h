@@ -84,6 +84,11 @@ namespace GCTags
 
 	namespace State
 	{
+		namespace Buff
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(SuperArmor)
+		}
+
 		namespace CC
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knockback)
@@ -96,6 +101,9 @@ namespace GCTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_DamageTaken_Projectile);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Character_DamageTaken_SecondaryAOE);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Secondary_Explosion);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Secondary_Explosion_Sound);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Tertiary_Buff);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_HitReact);
 	}
 
 	// ⭐⭐⭐ Interview Point:

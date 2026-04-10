@@ -147,7 +147,13 @@ FGameplayTag UGC_HealthComponent::ResolveCueTagFromDamageType(const FGameplayTag
 void UGC_HealthComponent::SendHitReactEvent(const FGC_DamageFeedbackData& DamageData) const
 {
 	AActor* OwnerActor = GetOwner();
-	if (!OwnerActor) return;
+	if (!OwnerActor || !AbilitySystemComponent) return;
+
+	// Super armor keeps damage feedback, but suppresses the hit-react interrupt event.
+	if (AbilitySystemComponent->HasMatchingGameplayTag(GCTags::State::Buff::SuperArmor))
+	{
+		return;
+	}
 	
 	FGameplayEventData Payload;
 	Payload.Instigator = DamageData.Instigator.Get();
